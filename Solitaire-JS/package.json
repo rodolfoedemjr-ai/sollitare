@@ -1,0 +1,38 @@
+{
+  "name": "solitaire-js",
+  "version": "1.0.0",
+  "description": "Solitaire game wrapped as an Electron app.",
+  "main": "dist/main.js",
+  "scripts": {
+    "start": "electron .",
+    "package": "electron-packager . solitaire-js --platform=win32 --arch=x64 --out=release --overwrite",
+    "dist": "electron-builder --win --x64"
+  },
+  "build": {
+    "appId": "com.solitaire-js.app",
+    "productName": "Solitaire JS",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-packager": "^17.1.0",
+    "electron-builder": "^26.0.0"
+  },
+  "allowScripts": {
+    "electron@30.5.1": true,
+    "electron-winstaller@5.4.0": true
+  }
+}
