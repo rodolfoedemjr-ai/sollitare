@@ -1,7 +1,3 @@
-/* Thanks to
-   @donpark on GitHub Scalable CSS Playing Cards
-   https://donpark.github.io/scalable-css-playing-cards/ */
-
 @font-face {
   font-family: 'Suit-Regular';
   src: url("https://bfa.github.io/solitaire-js/fonts/suit-regular.eot");
@@ -19,6 +15,44 @@ body {
    background: #0e8b44 url('https://bfa.github.io/solitaire-js/img/green_felt.jpg');
    background-size: cover;
    background-position: center;
+}
+#title-screen {
+   position: fixed;
+   top: 0;
+   left: 0;
+   width: 100%;
+   height: 100%;
+   background: #0e8b44 url('https://bfa.github.io/solitaire-js/img/green_felt.jpg');
+   background-size: cover;
+   background-position: center;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   z-index: 9999;
+   cursor: pointer;
+}
+#title-screen.hidden {
+   display: none;
+}
+.title-content {
+   text-align: center;
+}
+.title-content h1 {
+   font-size: 5rem;
+   font-weight: bold;
+   margin-bottom: 2rem;
+   color: #f3f5f7;
+   text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+.title-content p {
+   font-size: 2rem;
+   color: #f3f5f7;
+   animation: blink 1.5s infinite;
+   text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+@keyframes blink {
+   0%, 50%, 100% { opacity: 1; }
+   25%, 75% { opacity: 0.5; }
 }
 .navbar {
    background: rgba(8,8,8,.75);
@@ -123,6 +157,25 @@ body {
    background: rgba(0,0,0,.8);
    padding: 1em;
    line-height: 1;
+   color: #fff;
+   cursor: pointer;
+}
+#restart-game {
+   display: none;
+   appearance: none;
+   -webkit-appearance: none;
+   outline: none;
+   border: 0;
+   position: absolute;
+   z-index: 1;
+   bottom: 3.5em;
+   width: 100%;
+   background: rgba(255,255,255,.95);
+   padding: 1em;
+   line-height: 1;
+   color: #111;
+   font-weight: 700;
+   cursor: pointer;
 }
 #table {
    opacity: 0;
@@ -192,6 +245,15 @@ body {
 }
 .card * {
    pointer-events: none;
+}
+.card.dragging {
+   opacity: 0.85;
+   transform: scale(1.02);
+   box-shadow: 0 14px 30px rgba(0,0,0,0.35);
+   transition: none;
+}
+.card.drag-source {
+   opacity: 0.35;
 }
 @media screen and (min-width: 768px) {
    .card {
@@ -759,4 +821,184 @@ body {
    /* Disable Grammarly */
    grammarly-card {
        display: none;
+   }
+
+   /* Settings Button - Hamburger Menu */
+   .settings-btn {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      width: 40px;
+      height: 40px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 2px solid #f3f5f7;
+      border-radius: 5px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      z-index: 100;
+      transition: all 0.3s ease;
+      padding: 0;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+   }
+
+   .settings-btn:hover {
+      background: rgba(0, 0, 0, 0.8);
+      border-color: #FCDB1A;
+      transform: scale(1.05);
+   }
+
+   .settings-btn span {
+      display: block;
+      width: 20px;
+      height: 3px;
+      background: #f3f5f7;
+      border-radius: 2px;
+      transition: all 0.3s ease;
+   }
+
+   .settings-btn:hover span {
+      background: #FCDB1A;
+   }
+
+   /* Settings Modal */
+   .settings-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+   }
+
+   .settings-modal.hidden {
+      display: none;
+      opacity: 0;
+   }
+
+   .settings-panel {
+      background: rgba(0, 0, 0, 0.85);
+      border: 2px solid #FCDB1A;
+      border-radius: 10px;
+      padding: 20px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+      color: #f3f5f7;
+   }
+
+   .settings-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #FCDB1A;
+      padding-bottom: 10px;
+   }
+
+   .settings-header h2 {
+      margin: 0;
+      color: #FCDB1A;
+      font-size: 1.5rem;
+   }
+
+   .close-btn {
+      background: transparent;
+      border: none;
+      color: #FCDB1A;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+      transition: all 0.2s ease;
+      outline: none;
+   }
+
+   .close-btn:hover {
+      background: rgba(252, 219, 26, 0.2);
+      transform: scale(1.1);
+   }
+
+   .settings-content {
+      padding: 10px 0;
+   }
+
+   .settings-group {
+      margin-bottom: 20px;
+   }
+
+   .settings-group label {
+      display: block;
+      margin-bottom: 10px;
+      color: #FCDB1A;
+      font-weight: bold;
+      font-size: 1rem;
+   }
+
+   .background-options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+   }
+
+   .bg-option {
+      background: transparent;
+      border: 2px solid rgba(243, 245, 247, 0.5);
+      border-radius: 8px;
+      padding: 10px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+   }
+
+   .bg-option:hover {
+      border-color: #FCDB1A;
+      transform: translateY(-2px);
+      box-shadow: 0 0 10px rgba(252, 219, 26, 0.3);
+   }
+
+   .bg-option.active {
+      border-color: #FCDB1A;
+      background: rgba(252, 219, 26, 0.1);
+      box-shadow: 0 0 15px rgba(252, 219, 26, 0.5);
+   }
+
+   .bg-preview {
+      width: 100%;
+      height: 60px;
+      border-radius: 5px;
+      border: 1px solid rgba(243, 245, 247, 0.3);
+      transition: all 0.2s ease;
+   }
+
+   .bg-option:hover .bg-preview {
+      border-color: #FCDB1A;
+   }
+
+   .bg-option span {
+      color: #f3f5f7;
+      font-size: 0.9rem;
+      font-weight: 500;
    }

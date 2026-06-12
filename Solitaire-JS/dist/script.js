@@ -118,6 +118,9 @@
    var $fnd = d.querySelector('#fnd');
    var $tab = d.querySelector('#tab');
    var $autoWin = d.querySelector('#auto-win');
+   var $restartGame = d.querySelector('#restart-game');
+   var $titleScreen = d.querySelector('#title-screen');
+   var $gameContainer = d.querySelector('#game-container');
 
    // other global vars
    var clock = 0;
@@ -128,20 +131,168 @@
    var lastEventTime = 0;
    var unplayedTabCards = [];
 
-// 1. CREATE DECK
-   deck = create(deck, suits);
+   // Initialize game
+   function startGame() {
+      hideRestartButton();
+      if ($autoWin) $autoWin.style.display = 'none';
+      // Hide title screen
+      $titleScreen.classList.add('hidden');
+      $gameContainer.style.display = 'block';
 
-// 2. SHUFFLE DECK
-   deck = shuffle(deck);
+      // 1. CREATE DECK
+      deck = create(deck, suits);
 
-// 3. DEAL DECK
-   table = deal(deck, table);
+      // 2. SHUFFLE DECK
+      deck = shuffle(deck);
 
-// 4. RENDER TABLE
-   render(table, playedCards);
+      // 3. DEAL DECK
+      table = deal(deck, table);
 
-// 5. START GAMEPLAY
-   play(table);
+      // 4. RENDER TABLE
+      render(table, playedCards);
+
+      // 5. START GAMEPLAY
+      play(table);
+
+      // Call sizeCards after the game is rendered
+      sizeCards();
+   }
+
+   // Title screen click handler
+   $titleScreen.addEventListener('click', startGame);
+   if ($restartGame) $restartGame.addEventListener('click', restartGame);
+
+   // Settings functionality
+   var $settingsBtn = d.querySelector('#settings-btn');
+   var $settingsModal = d.querySelector('#settings-modal');
+   var $closeSettings = d.querySelector('#close-settings');
+   var $bgOptions = d.querySelectorAll('.bg-option');
+
+   // Background definitions
+   var backgroundStyles = {
+      default: {
+         color: '#0e8b44',
+         pattern: 'url("https://bfa.github.io/solitaire-js/img/green_felt.jpg")'
+      },
+      blue: {
+         color: '#003d7a',
+         pattern: 'linear-gradient(135deg, #003d7a 0%, #005fa3 100%)'
+      },
+      red: {
+         color: '#8b0000',
+         pattern: 'linear-gradient(135deg, #8b0000 0%, #b8312f 100%)'
+      },
+      purple: {
+         color: '#4b0082',
+         pattern: 'linear-gradient(135deg, #4b0082 0%, #7b2cbf 100%)'
+      },
+      custom: {
+         color: '#1a1a1a',
+         pattern: 'background/background-02.gif',
+         isImage: true
+      },
+      custom03: {
+         color: '#1a1a1a',
+         pattern: 'background/background-03.gif',
+         isImage: true
+      }
+   };
+
+   // Open settings modal
+   $settingsBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      $settingsModal.classList.remove('hidden');
+   });
+
+   // Close settings modal
+   $closeSettings.addEventListener('click', function() {
+      $settingsModal.classList.add('hidden');
+   });
+
+   // Close modal when clicking outside the panel
+   $settingsModal.addEventListener('click', function(e) {
+      if (e.target === $settingsModal) {
+         $settingsModal.classList.add('hidden');
+      }
+   });
+
+   // Close modal with Escape key
+   d.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && !$settingsModal.classList.contains('hidden')) {
+         $settingsModal.classList.add('hidden');
+      }
+   });
+
+   // Handle background option clicks
+   $bgOptions.forEach(function(option) {
+      option.addEventListener('click', function() {
+         var bg = this.dataset.bg;
+         changeBackground(bg);
+
+         // Update active state
+         $bgOptions.forEach(function(opt) {
+            opt.classList.remove('active');
+         });
+         this.classList.add('active');
+
+         // Save preference to localStorage
+         localStorage.setItem('solitaire-bg', bg);
+      });
+   });
+
+   // Change background function
+   function changeBackground(bgName) {
+      var bgStyle = backgroundStyles[bgName] || backgroundStyles['default'];
+      
+      // For custom backgrounds, use different approach
+      if (bgStyle.isImage) {
+         d.body.style.backgroundImage = 'url("' + bgStyle.pattern + '")';
+         d.body.style.backgroundColor = bgStyle.color;
+         d.body.style.backgroundSize = 'cover';
+         d.body.style.backgroundPosition = 'center';
+         d.body.style.backgroundRepeat = 'no-repeat';
+         d.body.style.backgroundAttachment = 'fixed';
+      } else {
+         d.body.style.background = bgStyle.color + ' ' + bgStyle.pattern;
+         d.body.style.backgroundSize = 'cover';
+         d.body.style.backgroundPosition = 'center';
+      }
+
+      // Also update title screen background if it's visible
+      var $titleScreen = d.querySelector('#title-screen');
+      if ($titleScreen && !$titleScreen.classList.contains('hidden')) {
+         if (bgStyle.isImage) {
+            $titleScreen.style.backgroundImage = 'url("' + bgStyle.pattern + '")';
+            $titleScreen.style.backgroundColor = bgStyle.color;
+            $titleScreen.style.backgroundSize = 'cover';
+            $titleScreen.style.backgroundPosition = 'center';
+            $titleScreen.style.backgroundRepeat = 'no-repeat';
+            $titleScreen.style.backgroundAttachment = 'fixed';
+         } else {
+            $titleScreen.style.background = bgStyle.color + ' ' + bgStyle.pattern;
+            $titleScreen.style.backgroundSize = 'cover';
+            $titleScreen.style.backgroundPosition = 'center';
+         }
+      }
+   }
+
+   // Load saved background preference on page load
+   function loadBackgroundPreference() {
+      var savedBg = localStorage.getItem('solitaire-bg') || 'default';
+      changeBackground(savedBg);
+
+      // Set active state
+      $bgOptions.forEach(function(option) {
+         if (option.dataset.bg === savedBg) {
+            option.classList.add('active');
+         } else {
+            option.classList.remove('active');
+         }
+      });
+   }
+
+   // Load preference on startup
+   loadBackgroundPreference();
 
 // ### EVENT HANDLERS ###
    window.onresize = function(event) {
@@ -340,7 +491,128 @@
          if (append) pile.appendChild(e);
          // or prepend to pile
          else pile.insertBefore(e, pile.firstChild);
+         // bind drag events to card
+         e.addEventListener('pointerdown', startCardDrag);
          return;
+      }
+
+   // card drag support
+      var dragState = {
+         active: false,
+         moved: false,
+         card: null,
+         clone: null,
+         source: null,
+         offsetX: 0,
+         offsetY: 0,
+         startX: 0,
+         startY: 0
+      };
+      var ignoreClickAfterDrag = false;
+
+      function isDraggableCard(card) {
+         if (!card) return false;
+         if (card.dataset.pile === 'stock') return false;
+         if (card.dataset.played === 'true') return true;
+         return ['waste','spades','hearts','diamonds','clubs'].indexOf(card.dataset.pile) >= 0;
+      }
+
+      function getDropPileFromPoint(x, y) {
+         var el = d.elementFromPoint(x, y);
+         if (!el) return null;
+         return el.closest('.pile');
+      }
+
+      function startCardDrag(event) {
+         if (event.button !== 0) return;
+         var card = event.currentTarget;
+         if (!isDraggableCard(card)) return;
+         dragState.active = true;
+         dragState.moved = false;
+         dragState.card = card;
+         dragState.source = card.closest('.pile').dataset.pile;
+         dragState.startX = event.clientX;
+         dragState.startY = event.clientY;
+         var rect = card.getBoundingClientRect();
+         dragState.offsetX = event.clientX - rect.left;
+         dragState.offsetY = event.clientY - rect.top;
+         dragState.clone = card.cloneNode(true);
+         dragState.clone.classList.add('dragging');
+         dragState.clone.style.position = 'fixed';
+         dragState.clone.style.top = rect.top + 'px';
+         dragState.clone.style.left = rect.left + 'px';
+         dragState.clone.style.width = rect.width + 'px';
+         dragState.clone.style.height = rect.height + 'px';
+         dragState.clone.style.pointerEvents = 'none';
+         dragState.clone.style.margin = '0';
+         dragState.clone.style.transform = 'none';
+         dragState.clone.style.zIndex = '10000';
+         d.body.appendChild(dragState.clone);
+         card.classList.add('drag-source');
+         d.addEventListener('pointermove', moveCardDrag);
+         d.addEventListener('pointerup', endCardDrag);
+         d.addEventListener('pointercancel', cancelCardDrag);
+         card.setPointerCapture(event.pointerId);
+         event.preventDefault();
+      }
+
+      function moveCardDrag(event) {
+         if (!dragState.active) return;
+         if (!dragState.moved && (Math.abs(event.clientX - dragState.startX) + Math.abs(event.clientY - dragState.startY) > 5)) {
+            dragState.moved = true;
+         }
+         if (dragState.clone) {
+            dragState.clone.style.top = (event.clientY - dragState.offsetY) + 'px';
+            dragState.clone.style.left = (event.clientX - dragState.offsetX) + 'px';
+         }
+         event.preventDefault();
+      }
+
+      function endCardDrag(event) {
+         if (!dragState.active) return;
+         var card = dragState.card;
+         if (dragState.clone) {
+            var dropPile = getDropPileFromPoint(event.clientX, event.clientY);
+            if (dropPile) {
+               var cardData = [card.dataset.rank, card.dataset.suit];
+               $table.dataset.move = 'true';
+               $table.dataset.selected = cardData;
+               $table.dataset.source = dragState.source;
+               $table.dataset.dest = dropPile.dataset.pile;
+               card.dataset.selected = 'true';
+               if (validateMove(cardData, dropPile.dataset.pile)) {
+                  makeMove();
+               }
+               reset(table);
+               render(table, playedCards);
+               play(table);
+            }
+            dragState.clone.remove();
+         }
+         cleanupCardDrag(event);
+         ignoreClickAfterDrag = dragState.moved;
+      }
+
+      function cancelCardDrag(event) {
+         if (!dragState.active) return;
+         if (dragState.clone) dragState.clone.remove();
+         cleanupCardDrag(event);
+         ignoreClickAfterDrag = dragState.moved;
+      }
+
+      function cleanupCardDrag(event) {
+         if (dragState.card) {
+            dragState.card.classList.remove('drag-source');
+            if (event && event.pointerId) {
+               try { dragState.card.releasePointerCapture(event.pointerId); } catch (e) {}
+            }
+         }
+         d.removeEventListener('pointermove', moveCardDrag);
+         d.removeEventListener('pointerup', endCardDrag);
+         d.removeEventListener('pointercancel', cancelCardDrag);
+         dragState.active = false;
+         dragState.card = null;
+         dragState.clone = null;
       }
 
    // check for played cards
@@ -594,6 +866,11 @@
 
          // single click
          if (clicks === 1 && event.type === 'click') {
+            if (ignoreClickAfterDrag) {
+               ignoreClickAfterDrag = false;
+               clicks = 0;
+               return;
+            }
             clickTimer = setTimeout(function() {
                console.log('Single Click Detected', event);
 
@@ -1084,6 +1361,8 @@
             updateScore(getBonus());
             // throw confetti
             throwConfetti();
+            waterfallCards();
+            showRestartButton();
             // return true
             return true;
          }
@@ -1190,7 +1469,11 @@
                i--;
                if (i !== 0) animation_loop();
                // at the end lets celebrate!
-               else throwConfetti();
+               else {
+                  throwConfetti();
+                  waterfallCards();
+                  showRestartButton();
+               }
             }, 100);
          };
          // run animation loop
@@ -1199,7 +1482,6 @@
 
    // throw confetti
       /* Thanks to @gamanox
-         https://codepen.io/gamanox/pen/FkEbH
       */
       function throwConfetti() {
          console.log('Confetti!');
@@ -1359,3 +1641,43 @@
          tick();
 
       }
+
+   function showRestartButton() {
+      if (!$restartGame) return;
+      $restartGame.style.display = 'block';
+   }
+
+   function hideRestartButton() {
+      if (!$restartGame) return;
+      $restartGame.style.display = 'none';
+   }
+
+   function restartGame() {
+      window.location.reload();
+   }
+
+   function waterfallCards() {
+      var cards = d.querySelectorAll('.card');
+      var width = window.innerWidth;
+      var height = window.innerHeight;
+      cards.forEach(function(card, index) {
+         var rect = card.getBoundingClientRect();
+         card.style.position = 'fixed';
+         card.style.top = rect.top + 'px';
+         card.style.left = rect.left + 'px';
+         card.style.width = rect.width + 'px';
+         card.style.height = rect.height + 'px';
+         card.style.margin = '0';
+         card.style.zIndex = 1000 + index;
+         card.style.transition = 'transform 1.6s ease-out, opacity 1.6s ease-out';
+      });
+      setTimeout(function() {
+         cards.forEach(function(card) {
+            var dx = (Math.random() - 0.5) * width * 0.7;
+            var dy = height * 0.8 + Math.random() * 200;
+            var rotation = (Math.random() - 0.5) * 80;
+            card.style.transform = 'translate(' + dx + 'px, ' + dy + 'px) rotate(' + rotation + 'deg)';
+            card.style.opacity = '0.2';
+         });
+      }, 80);
+   }

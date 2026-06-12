@@ -9,7 +9,16 @@
   </head>
     
   <body>
-  <div class="container">
+  
+  <div id="title-screen" class="title-screen">
+    <div class="title-content">
+      <h1>Solitaire</h1>
+      <h2>By CODEBLOODED</h2>
+      <p>Click Anywhere to Play</p>
+    </div>
+  </div>
+
+  <div class="container" id="game-container" style="display: none;">
 
       <div id="score">
          <div class="timer">
@@ -68,7 +77,61 @@
 
    </div><!-- /.container -->
 
+   <!-- Settings Button (Hamburger Menu) -->
+   <button id="settings-btn" class="settings-btn" title="Settings">
+      <span></span>
+      <span></span>
+      <span></span>
+   </button>
+
+   <!-- Settings Modal -->
+   <div id="settings-modal" class="settings-modal hidden">
+      <div class="settings-panel">
+         <div class="settings-header">
+            <h2>Settings</h2>
+            <button class="close-btn" id="close-settings">&times;</button>
+         </div>
+         <div class="settings-content">
+            <div class="settings-group">
+               <label>Background:</label>
+               <div class="background-options">
+                  <button class="bg-option" data-bg="default" title="Default Green">
+                     <div class="bg-preview" style="background: #0e8b44;"></div>
+                     <span>Green</span>
+                  </button>
+                  <button class="bg-option" data-bg="blue" title="Blue Felt">
+                     <div class="bg-preview" style="background: #003d7a;"></div>
+                     <span>Blue</span>
+                  </button>
+                  <button class="bg-option" data-bg="red" title="Red Felt">
+                     <div class="bg-preview" style="background: #8b0000;"></div>
+                     <span>Red</span>
+                  </button>
+                  <button class="bg-option" data-bg="purple" title="Purple Felt">
+                     <div class="bg-preview" style="background: #4b0082;"></div>
+                     <span>Purple</span>
+                  </button>
+               </div>
+            </div>
+            <div class="settings-group">
+               <label>Custom Background:</label>
+               <div class="background-options">
+                  <button class="bg-option" data-bg="custom" title="Custom Background 02">
+                     <div class="bg-preview" style="background: url('background/background-02.gif') center/cover;"></div>
+                     <span>Background 02</span>
+                  </button>
+                  <button class="bg-option" data-bg="custom03" title="Custom Background 03">
+                     <div class="bg-preview" style="background: url('background/background-03.gif') center/cover;"></div>
+                     <span>Background 03</span>
+                  </button>
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+
    <button id="auto-win">Auto Win</button>
+   <button id="restart-game">Restart</button>
 
    <canvas id="confetti"></canvas>
 
