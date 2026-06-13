@@ -1,358 +1,416 @@
 <!DOCTYPE html>
 <html lang="en">
 
-  <head>
+<head>
     <meta charset="UTF-8">
     <title>solitaire-js</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1"><link rel='stylesheet' href='https://bfa.github.io/solitaire-js/css/bootstrap.min.css'><link rel="stylesheet" href="./style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel='stylesheet' href='https://bfa.github.io/solitaire-js/css/bootstrap.min.css'>
+    <link rel="stylesheet" href="./style.css">
 
-  </head>
-    
-  <body>
-  
-  <div id="title-screen" class="title-screen">
-    <div class="title-content">
-      <h1>Solitaire</h1>
-      <h2>By CODEBLOODED</h2>
-      <p>Click Anywhere to Play</p>
+</head>
+
+<body>
+
+    <div id="title-screen" class="title-screen">
+        <div class="title-content">
+            <img class="title-logo" src="./cards/classic/Splash_Screen.png" alt="CODEBLOODED logo">
+            <h1>Solitaire</h1>
+            <h2>By CODEBLOODED</h2>
+            <p>Click Anywhere to Play</p>
+        </div>
     </div>
-  </div>
 
-  <div class="container" id="game-container" style="display: none;">
+    <div class="container" id="game-container" style="display: none;">
 
-      <div id="score">
-         <div class="timer">
-            <button id="play-pause">
+        <div id="score">
+            <div class="timer">
+                <button id="play-pause">
                <i id="play">Play</i>
                <i id="pause">Pause</i>
             </button>
-            <label>Timer:</label>
-            <span>00:00</span>
-         </div>
-         <div class="move-count" data-moves="0">
-            <label>Moves:</label>
-            <span>0</span>
-         </div>
-         <div class="score" data-score="0">
-            <label>Score:</label>
-            <span>0</span>
-         </div>
-      </div>
+                <label>Timer:</label>
+                <span>00:00</span>
+            </div>
+            <div class="move-count" data-moves="0">
+                <label>Moves:</label>
+                <span>0</span>
+            </div>
+            <div class="score" data-score="0">
+                <label>Score:</label>
+                <span>0</span>
+            </div>
+        </div>
 
-      <div id="table">
+        <div id="table">
 
-         <div class="upper-row">
-            <div id="stock" class="stock pile" data-pile="stock">
-               <i class="reload-icon" data-action="reload">
+            <div class="upper-row">
+                <div id="stock" class="stock pile" data-pile="stock">
+                    <i class="reload-icon" data-action="reload">
                   <span></span>
                </i>
-               <ul></ul>
+                    <ul></ul>
+                </div>
+
+                <div id="waste" class="waste pile" data-pile="waste">
+                    <ul></ul>
+                </div>
+
+                <ul id="fnd" class="fnd">
+                    <li id="spades" class="spades pile" data-pile="spades" data-empty="true">
+                        <ul></ul>
+                    </li>
+                    <li id="hearts" class="hearts pile" data-pile="hearts" data-empty="true">
+                        <ul></ul>
+                    </li>
+                    <li id="diamonds" class="diamonds pile" data-pile="diamonds" data-empty="true">
+                        <ul></ul>
+                    </li>
+                    <li id="clubs" class="clubs pile" data-pile="clubs" data-empty="true">
+                        <ul></ul>
+                    </li>
+                </ul>
             </div>
 
-            <div id="waste" class="waste pile" data-pile="waste">
-               <ul></ul>
+            <div class="lower-row">
+                <ul id="tab" class="tab">
+                    <li class="pile" data-pile="1">
+                        <ul></ul>
+                    </li>
+                    <li class="pile" data-pile="2">
+                        <ul></ul>
+                    </li>
+                    <li class="pile" data-pile="3">
+                        <ul></ul>
+                    </li>
+                    <li class="pile" data-pile="4">
+                        <ul></ul>
+                    </li>
+                    <li class="pile" data-pile="5">
+                        <ul></ul>
+                    </li>
+                    <li class="pile" data-pile="6">
+                        <ul></ul>
+                    </li>
+                    <li class="pile" data-pile="7">
+                        <ul></ul>
+                    </li>
+                </ul>
             </div>
 
-            <ul id="fnd" class="fnd">
-               <li id="spades" class="spades pile" data-pile="spades" data-empty="true"><ul></ul></li>
-               <li id="hearts" class="hearts pile" data-pile="hearts" data-empty="true"><ul></ul></li>
-               <li id="diamonds" class="diamonds pile" data-pile="diamonds" data-empty="true"><ul></ul></li>
-               <li id="clubs" class="clubs pile" data-pile="clubs" data-empty="true"><ul></ul></li>
-            </ul>
-         </div>
+        </div>
 
-         <div class="lower-row">
-            <ul id="tab" class="tab">
-               <li class="pile" data-pile="1"><ul></ul></li>
-               <li class="pile" data-pile="2"><ul></ul></li>
-               <li class="pile" data-pile="3"><ul></ul></li>
-               <li class="pile" data-pile="4"><ul></ul></li>
-               <li class="pile" data-pile="5"><ul></ul></li>
-               <li class="pile" data-pile="6"><ul></ul></li>
-               <li class="pile" data-pile="7"><ul></ul></li>
-            </ul>
-         </div>
+    </div>
+    <!-- /.container -->
 
-      </div>
-
-   </div><!-- /.container -->
-
-   <!-- Settings Button (Hamburger Menu) -->
-   <button id="settings-btn" class="settings-btn" title="Settings">
+    <!-- Settings Button (Hamburger Menu) -->
+    <button id="settings-btn" class="settings-btn" title="Settings">
       <span></span>
       <span></span>
       <span></span>
    </button>
 
-   <!-- Settings Modal -->
-   <div id="settings-modal" class="settings-modal hidden">
-      <div class="settings-panel">
-         <div class="settings-header">
-            <h2>Settings</h2>
-            <button class="close-btn" id="close-settings">&times;</button>
-         </div>
-         <div class="settings-content">
-            <div class="settings-group">
-               <label>Background:</label>
-               <div class="background-options">
-                  <button class="bg-option" data-bg="default" title="Default Green">
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="settings-modal hidden">
+        <div class="settings-panel">
+            <div class="settings-header">
+                <h2>Settings</h2>
+                <button class="close-btn" id="close-settings">&times;</button>
+            </div>
+            <div class="settings-content">
+                <div class="settings-group">
+                    <label>Background:</label>
+                    <div class="background-options">
+                        <button class="bg-option" data-bg="default" title="Default Green">
                      <div class="bg-preview" style="background: #0e8b44;"></div>
                      <span>Green</span>
                   </button>
-                  <button class="bg-option" data-bg="blue" title="Blue Felt">
+                        <button class="bg-option" data-bg="blue" title="Blue Felt">
                      <div class="bg-preview" style="background: #003d7a;"></div>
                      <span>Blue</span>
                   </button>
-                  <button class="bg-option" data-bg="red" title="Red Felt">
+                        <button class="bg-option" data-bg="red" title="Red Felt">
                      <div class="bg-preview" style="background: #8b0000;"></div>
                      <span>Red</span>
                   </button>
-                  <button class="bg-option" data-bg="purple" title="Purple Felt">
+                        <button class="bg-option" data-bg="purple" title="Purple Felt">
                      <div class="bg-preview" style="background: #4b0082;"></div>
                      <span>Purple</span>
                   </button>
-               </div>
-            </div>
-            <div class="settings-group">
-               <label>Custom Background:</label>
-               <div class="background-options">
-                  <button class="bg-option" data-bg="custom" title="Custom Background 02">
+                    </div>
+                </div>
+                <div class="settings-group">
+                    <label>Custom Background:</label>
+                    <div class="background-options">
+                        <button class="bg-option" data-bg="custom" title="Custom Background 02">
                      <div class="bg-preview" style="background: url('background/background-02.gif') center/cover;"></div>
                      <span>Background 02</span>
                   </button>
-                  <button class="bg-option" data-bg="custom03" title="Custom Background 03">
+                        <button class="bg-option" data-bg="custom03" title="Custom Background 03">
                      <div class="bg-preview" style="background: url('background/background-03.gif') center/cover;"></div>
                      <span>Background 03</span>
                   </button>
-               </div>
+                    </div>
+                </div>
             </div>
-         </div>
-      </div>
-   </div>
+        </div>
+    </div>
 
-   <button id="auto-win">Auto Win</button>
-   <button id="restart-game">Restart</button>
+    <div id="endgame-modal" class="endgame-modal hidden">
+        <div class="endgame-panel">
+            <div class="endgame-header">
+                <h2>Game Over</h2>
+                <button class="close-btn" id="endgame-close">&times;</button>
+            </div>
+            <div class="endgame-body">
+                <p class="endgame-summary">Your final score has been recorded. Check the leaderboard and credits below.</p>
+                <div class="endgame-results">
+                    <div><strong>Score:</strong> <span id="endgame-score">0</span></div>
+                    <div><strong>Moves:</strong> <span id="endgame-moves">0</span></div>
+                    <div><strong>Time:</strong> <span id="endgame-time">00:00</span></div>
+                </div>
+                <div class="leaderboard-section">
+                    <h3>Leaderboard</h3>
+                    <ol class="leaderboard-list"></ol>
+                    <p class="leaderboard-note">Your best scores are saved locally in this browser.</p>
+                </div>
+                <div class="credits-section">
+                    <h3>Credits</h3>
+                    <p>Game developed by CODEBLOODED.</p>
+                    <p>All card logic and UI handling updated for web play.</p>
+                    <p>Thank you for playing!</p>
+                </div>
+                <div class="endgame-actions">
+                    <button id="play-again" class="btn btn-primary">Play Again</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-   <canvas id="confetti"></canvas>
+    <button id="auto-win">Auto Win</button>
+    <button id="restart-game">Restart</button>
 
-   <ul class="template">
-      <li data-rank="2">
-         <div class="two {{suit}}">
-            <div class="corner top">
-               <span class="rank">2</span>
-               <span class="suit"></span>
-            </div>
-            <span class="suit top_center"></span>
-            <span class="suit bottom_center"></span>
-            <div class="corner bottom">
-               <span class="rank">2</span>
-               <span class="suit"></span>
-            </div>
-         </div>
-      </li>
-      <li data-rank="3">
-         <div class="three {{suit}}">
-            <div class="corner top">
-               <span class="rank">3</span>
-               <span class="suit"></span>
-            </div>
-            <span class="suit top_center"></span>
-            <span class="suit middle_center"></span>
-            <span class="suit bottom_center"></span>
-            <div class="corner bottom">
-               <span class="rank">3</span>
-               <span class="suit"></span>
-            </div>
-         </div>
-      </li>
-      <li data-rank="4">
-         <div class="four {{suit}}">
-            <div class="corner top">
-               <span class="rank">4</span>
-               <span class="suit"></span>
-            </div>
-            <span class="suit top_left"></span>
-            <span class="suit top_right"></span>
-            <span class="suit bottom_left"></span>
-            <span class="suit bottom_right"></span>
-            <div class="corner bottom">
-               <span class="rank">4</span>
-               <span class="suit"></span>
-            </div>
-         </div>
-      </li>
-      <li data-rank="5">
-         <div class="five {{suit}}">
-            <div class="corner top">
-               <span class="rank">5</span>
-               <span class="suit"></span>
-            </div>
-            <span class="suit top_left"></span>
-            <span class="suit top_right"></span>
-            <span class="suit middle_center"></span>
-            <span class="suit bottom_left"></span>
-            <span class="suit bottom_right"></span>
-            <div class="corner bottom">
-               <span class="rank">5</span>
-               <span class="suit"></span>
-            </div>
-         </div>
-      </li>
-      <li data-rank="6">
-         <div class="six {{suit}}">
-            <div class="corner top">
-               <span class="rank">6</span>
-               <span class="suit"></span>
-            </div>
-            <span class="suit top_left"></span>
-            <span class="suit top_right"></span>
-            <span class="suit middle_left"></span>
-            <span class="suit middle_right"></span>
-            <span class="suit bottom_left"></span>
-            <span class="suit bottom_right"></span>
-            <div class="corner bottom">
-               <span class="rank">6</span>
-               <span class="suit"></span>
-            </div>
-         </div>
-      </li>
-      <li data-rank="7">
-         <div class="seven {{suit}}">
-            <div class="corner top">
-               <span class="rank">7</span>
-               <span class="suit"></span>
-            </div>
-            <span class="suit top_left"></span>
-            <span class="suit top_right"></span>
-            <span class="suit middle_left"></span>
-            <span class="suit middle_top"></span>
-            <span class="suit middle_right"></span>
-            <span class="suit bottom_left"></span>
-            <span class="suit bottom_right"></span>
-            <div class="corner bottom">
-               <span class="rank">7</span>
-               <span class="suit"></span>
-            </div>
-         </div>
-      </li>
-      <li data-rank="8">
-         <div class="eight {{suit}}">
-            <div class="corner top">
-               <span class="rank">8</span>
-               <span class="suit"></span>
-            </div>
-            <span class="suit top_left"></span>
-            <span class="suit top_right"></span>
-            <span class="suit middle_left"></span>
-            <span class="suit middle_top_center"></span>
-            <span class="suit middle_right"></span>
-            <span class="suit middle_bottom_center"></span>
-            <span class="suit bottom_left"></span>
-            <span class="suit bottom_right"></span>
-            <div class="corner bottom">
-               <span class="rank">8</span>
-               <span class="suit"></span>
-            </div>
-         </div>
-      </li>
-      <li data-rank="9">
-         <div class="nine {{suit}}">
-            <div class="corner top">
-               <span class="rank">9</span>
-               <span class="suit"></span>
-            </div>
-            <span class="suit top_left"></span>
-            <span class="suit top_right"></span>
-            <span class="suit middle_top_left"></span>
-            <span class="suit middle_center"></span>
-            <span class="suit middle_top_right"></span>
-            <span class="suit bottom_left"></span>
-            <span class="suit bottom_right"></span>
-            <span class="suit middle_bottom_left"></span>
-            <span class="suit middle_bottom_right"></span>
-            <div class="corner bottom">
-               <span class="rank">9</span>
-               <span class="suit"></span>
-            </div>
-         </div>
-      </li>
-      <li data-rank="10">
-         <div class="ten {{suit}}">
-            <div class="corner top">
-               <span class="rank">10</span>
-               <span class="suit"></span>
-            </div>
-            <span class="suit top_left"></span>
-            <span class="suit top_right"></span>
-            <span class="suit middle_top_left"></span>
-            <span class="suit middle_top_center"></span>
-            <span class="suit middle_top_right"></span>
-            <span class="suit bottom_left"></span>
-            <span class="suit bottom_right"></span>
-            <span class="suit middle_bottom_center"></span>
-            <span class="suit middle_bottom_left"></span>
-            <span class="suit middle_bottom_right"></span>
-            <div class="corner bottom">
-               <span class="rank">10</span>
-               <span class="suit"></span>
-            </div>
-         </div>
-      </li>
-      <li data-rank="J">
-         <div class="jack {{suit}}">
-            <div class="corner top">
-               <span class="rank">J</span>
-               <span class="suit"></span>
-            </div>
-            <span class="face middle_center"></span>
-            <div class="corner bottom">
-               <span class="rank">J</span>
-               <span class="suit"></span>
-            </div>
-         </div>
-      </li>
-      <li data-rank="Q">
-         <div class="queen {{suit}}">
-            <div class="corner top">
-               <span class="rank">Q</span>
-               <span class="suit"></span>
-            </div>
-            <span class="face middle_center"></span>
-            <div class="corner bottom">
-               <span class="rank">Q</span>
-               <span class="suit"></span>
-            </div>
-         </div>
-      </li>
-      <li data-rank="K">
-         <div class="king {{suit}}">
-            <div class="corner top">
-               <span class="rank">K</span>
-               <span class="suit"></span>
-            </div>
-            <span class="face middle_center"></span>
-            <div class="corner bottom">
-               <span class="rank">K</span>
-               <span class="suit"></span>
-            </div>
-         </div>
-      </li>
-      <li data-rank="A">
-         <div class="ace {{suit}}">
-            <div class="corner top">
-               <span class="rank">A</span>
-               <span class="suit"></span>
-            </div>
-            <span class="suit middle_center"></span>
-            <div class="corner bottom">
-               <span class="rank">A</span>
-               <span class="suit"></span>
-            </div>
-         </div>
-      </li>
-   </ul><!-- /.templates -->
-    <script  src="./script.js"></script>
+    <canvas id="confetti"></canvas>
 
-  </body>
-  
+    <ul class="template">
+        <li data-rank="2">
+            <div class="two {{suit}}">
+                <div class="corner top">
+                    <span class="rank">2</span>
+                    <span class="suit"></span>
+                </div>
+                <span class="suit top_center"></span>
+                <span class="suit bottom_center"></span>
+                <div class="corner bottom">
+                    <span class="rank">2</span>
+                    <span class="suit"></span>
+                </div>
+            </div>
+        </li>
+        <li data-rank="3">
+            <div class="three {{suit}}">
+                <div class="corner top">
+                    <span class="rank">3</span>
+                    <span class="suit"></span>
+                </div>
+                <span class="suit top_center"></span>
+                <span class="suit middle_center"></span>
+                <span class="suit bottom_center"></span>
+                <div class="corner bottom">
+                    <span class="rank">3</span>
+                    <span class="suit"></span>
+                </div>
+            </div>
+        </li>
+        <li data-rank="4">
+            <div class="four {{suit}}">
+                <div class="corner top">
+                    <span class="rank">4</span>
+                    <span class="suit"></span>
+                </div>
+                <span class="suit top_left"></span>
+                <span class="suit top_right"></span>
+                <span class="suit bottom_left"></span>
+                <span class="suit bottom_right"></span>
+                <div class="corner bottom">
+                    <span class="rank">4</span>
+                    <span class="suit"></span>
+                </div>
+            </div>
+        </li>
+        <li data-rank="5">
+            <div class="five {{suit}}">
+                <div class="corner top">
+                    <span class="rank">5</span>
+                    <span class="suit"></span>
+                </div>
+                <span class="suit top_left"></span>
+                <span class="suit top_right"></span>
+                <span class="suit middle_center"></span>
+                <span class="suit bottom_left"></span>
+                <span class="suit bottom_right"></span>
+                <div class="corner bottom">
+                    <span class="rank">5</span>
+                    <span class="suit"></span>
+                </div>
+            </div>
+        </li>
+        <li data-rank="6">
+            <div class="six {{suit}}">
+                <div class="corner top">
+                    <span class="rank">6</span>
+                    <span class="suit"></span>
+                </div>
+                <span class="suit top_left"></span>
+                <span class="suit top_right"></span>
+                <span class="suit middle_left"></span>
+                <span class="suit middle_right"></span>
+                <span class="suit bottom_left"></span>
+                <span class="suit bottom_right"></span>
+                <div class="corner bottom">
+                    <span class="rank">6</span>
+                    <span class="suit"></span>
+                </div>
+            </div>
+        </li>
+        <li data-rank="7">
+            <div class="seven {{suit}}">
+                <div class="corner top">
+                    <span class="rank">7</span>
+                    <span class="suit"></span>
+                </div>
+                <span class="suit top_left"></span>
+                <span class="suit top_right"></span>
+                <span class="suit middle_left"></span>
+                <span class="suit middle_top"></span>
+                <span class="suit middle_right"></span>
+                <span class="suit bottom_left"></span>
+                <span class="suit bottom_right"></span>
+                <div class="corner bottom">
+                    <span class="rank">7</span>
+                    <span class="suit"></span>
+                </div>
+            </div>
+        </li>
+        <li data-rank="8">
+            <div class="eight {{suit}}">
+                <div class="corner top">
+                    <span class="rank">8</span>
+                    <span class="suit"></span>
+                </div>
+                <span class="suit top_left"></span>
+                <span class="suit top_right"></span>
+                <span class="suit middle_left"></span>
+                <span class="suit middle_top_center"></span>
+                <span class="suit middle_right"></span>
+                <span class="suit middle_bottom_center"></span>
+                <span class="suit bottom_left"></span>
+                <span class="suit bottom_right"></span>
+                <div class="corner bottom">
+                    <span class="rank">8</span>
+                    <span class="suit"></span>
+                </div>
+            </div>
+        </li>
+        <li data-rank="9">
+            <div class="nine {{suit}}">
+                <div class="corner top">
+                    <span class="rank">9</span>
+                    <span class="suit"></span>
+                </div>
+                <span class="suit top_left"></span>
+                <span class="suit top_right"></span>
+                <span class="suit middle_top_left"></span>
+                <span class="suit middle_center"></span>
+                <span class="suit middle_top_right"></span>
+                <span class="suit bottom_left"></span>
+                <span class="suit bottom_right"></span>
+                <span class="suit middle_bottom_left"></span>
+                <span class="suit middle_bottom_right"></span>
+                <div class="corner bottom">
+                    <span class="rank">9</span>
+                    <span class="suit"></span>
+                </div>
+            </div>
+        </li>
+        <li data-rank="10">
+            <div class="ten {{suit}}">
+                <div class="corner top">
+                    <span class="rank">10</span>
+                    <span class="suit"></span>
+                </div>
+                <span class="suit top_left"></span>
+                <span class="suit top_right"></span>
+                <span class="suit middle_top_left"></span>
+                <span class="suit middle_top_center"></span>
+                <span class="suit middle_top_right"></span>
+                <span class="suit bottom_left"></span>
+                <span class="suit bottom_right"></span>
+                <span class="suit middle_bottom_center"></span>
+                <span class="suit middle_bottom_left"></span>
+                <span class="suit middle_bottom_right"></span>
+                <div class="corner bottom">
+                    <span class="rank">10</span>
+                    <span class="suit"></span>
+                </div>
+            </div>
+        </li>
+        <li data-rank="J">
+            <div class="jack {{suit}}">
+                <div class="corner top">
+                    <span class="rank">J</span>
+                    <span class="suit"></span>
+                </div>
+                <span class="face middle_center"></span>
+                <div class="corner bottom">
+                    <span class="rank">J</span>
+                    <span class="suit"></span>
+                </div>
+            </div>
+        </li>
+        <li data-rank="Q">
+            <div class="queen {{suit}}">
+                <div class="corner top">
+                    <span class="rank">Q</span>
+                    <span class="suit"></span>
+                </div>
+                <span class="face middle_center"></span>
+                <div class="corner bottom">
+                    <span class="rank">Q</span>
+                    <span class="suit"></span>
+                </div>
+            </div>
+        </li>
+        <li data-rank="K">
+            <div class="king {{suit}}">
+                <div class="corner top">
+                    <span class="rank">K</span>
+                    <span class="suit"></span>
+                </div>
+                <span class="face middle_center"></span>
+                <div class="corner bottom">
+                    <span class="rank">K</span>
+                    <span class="suit"></span>
+                </div>
+            </div>
+        </li>
+        <li data-rank="A">
+            <div class="ace {{suit}}">
+                <div class="corner top">
+                    <span class="rank">A</span>
+                    <span class="suit"></span>
+                </div>
+                <span class="suit middle_center"></span>
+                <div class="corner bottom">
+                    <span class="rank">A</span>
+                    <span class="suit"></span>
+                </div>
+            </div>
+        </li>
+    </ul>
+    <!-- /.templates -->
+    <script src="./script.js"></script>
+
+</body>
+
 </html>

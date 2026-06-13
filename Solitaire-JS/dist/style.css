@@ -1,1004 +1,1578 @@
 @font-face {
-  font-family: 'Suit-Regular';
-  src: url("https://bfa.github.io/solitaire-js/fonts/suit-regular.eot");
-  src: url("https://bfa.github.io/solitaire-js/fonts/suit-regular.eot?#iefix") format('embedded-opentype'), url("https://bfa.github.io/solitaire-js/fonts/suit-regular.woff") format('woff'), url("https://bfa.github.io/solitaire-js/fonts/suit-regular.ttf") format('truetype'), url("https://bfa.github.io/solitaire-js/fonts/suit-regular.svg#suit-regular") format('svg');
-  font-weight: normal;
-  font-style: normal;
+    font-family: 'Suit-Regular';
+    src: url("https://bfa.github.io/solitaire-js/fonts/suit-regular.eot");
+    src: url("https://bfa.github.io/solitaire-js/fonts/suit-regular.eot?#iefix") format('embedded-opentype'), url("https://bfa.github.io/solitaire-js/fonts/suit-regular.woff") format('woff'), url("https://bfa.github.io/solitaire-js/fonts/suit-regular.ttf") format('truetype'), url("https://bfa.github.io/solitaire-js/fonts/suit-regular.svg#suit-regular") format('svg');
+    font-weight: normal;
+    font-style: normal;
 }
-html, body {
-   width: 100%;
-   height: 100%;
-}
+
+html,
 body {
-   position: relative;
-   color: #f3f5f7;
-   background: #0e8b44 url('https://bfa.github.io/solitaire-js/img/green_felt.jpg');
-   background-size: cover;
-   background-position: center;
+    width: 100%;
+    height: 100%;
 }
+
+body {
+    position: relative;
+    color: #f3f5f7;
+    background: #0e8b44 url('cards/classic/green_felt.jpg');
+    background-size: cover;
+    background-position: center;
+}
+
+body.custom-background::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.1);
+    pointer-events: none;
+    z-index: 0;
+}
+
 #title-screen {
-   position: fixed;
-   top: 0;
-   left: 0;
-   width: 100%;
-   height: 100%;
-   background: #0e8b44 url('https://bfa.github.io/solitaire-js/img/green_felt.jpg');
-   background-size: cover;
-   background-position: center;
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   z-index: 9999;
-   cursor: pointer;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #0e8b44;
+    background-image: url('./cards/classic/Splash_Screen.png');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.4s ease;
 }
+
+#title-screen.visible {
+    opacity: 1;
+}
+
 #title-screen.hidden {
-   display: none;
+    display: none;
 }
+
+.title-logo {
+    display: block;
+    max-width: 60vw;
+    max-height: 40vh;
+    margin: 0 auto 2rem;
+    object-fit: contain;
+    filter: drop-shadow(0 0 20px rgba(0, 0, 0, 0.45));
+    pointer-events: none;
+}
+
 .title-content {
-   text-align: center;
+    text-align: center;
 }
+
 .title-content h1 {
-   font-size: 5rem;
-   font-weight: bold;
-   margin-bottom: 2rem;
-   color: #f3f5f7;
-   text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    font-size: 5rem;
+    font-weight: bold;
+    margin-bottom: 2rem;
+    color: #f3f5f7;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
+
 .title-content p {
-   font-size: 2rem;
-   color: #f3f5f7;
-   animation: blink 1.5s infinite;
-   text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    font-size: 2rem;
+    color: #f3f5f7;
+    animation: blink 1.5s infinite;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
+
 @keyframes blink {
-   0%, 50%, 100% { opacity: 1; }
-   25%, 75% { opacity: 0.5; }
+    0%,
+    50%,
+    100% {
+        opacity: 1;
+    }
+    25%,
+    75% {
+        opacity: 0.5;
+    }
 }
+
 .navbar {
-   background: rgba(8,8,8,.75);
+    background: rgba(8, 8, 8, .75);
 }
+
 .navbar a {
-   color: #fff;
+    color: #fff;
 }
+
 .navbar li[data-active="false"] {
-   opacity: 0.5;
-   pointer-events: none;
+    opacity: 0.5;
+    pointer-events: none;
 }
+
 .navbar li[data-active="true"] {
-   opacity: 1;
-   pointer-events: auto;
+    opacity: 1;
+    pointer-events: auto;
 }
+
 .template {
-   display: none;
+    display: none;
 }
+
 #score {
-   position: relative;
-   background: rgba(0,0,0,.15);
-   margin-top: 1.5em;
-   margin-bottom: 0.5em;
-   padding: 1em;
-   line-height: 1;
+    position: relative;
+    background: rgba(0, 0, 0, .15);
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    padding: 1em;
+    line-height: 1;
 }
-#score > * {
-   display: inline-block;
-   min-width: 100px;
+
+#score>* {
+    display: inline-block;
+    min-width: 100px;
 }
-#score > *:last-child {
-   float: right;
-   text-align: right;
+
+#score>*:last-child {
+    float: right;
+    text-align: right;
 }
+
 #score label {
-   margin-bottom: 0;
+    margin-bottom: 0;
 }
+
 #score .timer button {
-   display: none;
-   position: absolute;
-   appearance: none;
-   -webkit-appearance: none;
-   background: transparent;
-   outline: none;
-   border: 0;
-   padding: 0;
-   top: 0;
-   left: 0;
-   width: 3em;
-   height: 100%;
+    display: none;
+    position: absolute;
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    outline: none;
+    border: 0;
+    padding: 0;
+    top: 0;
+    left: 0;
+    width: 3em;
+    height: 100%;
 }
+
 #score .timer button i {
-   position: absolute;
-   top: 0;
-   left: 0;
-   width: 100%;
-   height: 100%;
-   font-size: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    font-size: 0;
 }
+
 #score .timer button i::before {
-   position: absolute;
-   top: 50%;
-   left: 50%;
-   width: 0.75em;
-   height: 1em;
-   margin-left: -0.375em;
-   margin-top: -0.5em;
-   font-size: 1.5rem;
-   content: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0.75em;
+    height: 1em;
+    margin-left: -0.375em;
+    margin-top: -0.5em;
+    font-size: 1.5rem;
+    content: none;
 }
+
 #score .timer button i#play::before {
-   border-top: 8px solid transparent;
-   border-left: 12px solid #fff;
-   border-bottom: 8px solid transparent;
+    border-top: 8px solid transparent;
+    border-left: 12px solid #fff;
+    border-bottom: 8px solid transparent;
 }
+
 #score .timer button i#pause::before {
-   border-right: 4px solid #fff;
-   border-left: 4px solid #fff;
+    border-right: 4px solid #fff;
+    border-left: 4px solid #fff;
 }
+
 [data-gameplay="active"] #score .timer button,
 [data-gameplay="paused"] #score .timer button {
-   display: inline-block;
+    display: inline-block;
 }
+
 [data-gameplay="active"] #score .timer button i#pause::before,
 [data-gameplay="paused"] #score .timer button i#play::before {
-   content: '';
+    content: '';
 }
+
 [data-gameplay="active"] #score,
 [data-gameplay="paused"] #score {
-   padding-left: 3em;
+    padding-left: 3em;
 }
+
 #auto-win {
-   display: none;
-   appearance: none;
-   -webkit-appearance: none;
-   outline: none;
-   border: 0;
-   position: absolute;
-   z-index: 1;
-   bottom: 0;
-   width: 100%;
-   background: rgba(0,0,0,.8);
-   padding: 1em;
-   line-height: 1;
-   color: #fff;
-   cursor: pointer;
+    display: none;
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+    border: 0;
+    position: absolute;
+    z-index: 1;
+    bottom: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, .8);
+    padding: 1em;
+    line-height: 1;
+    color: #fff;
+    cursor: pointer;
 }
+
 #restart-game {
-   display: none;
-   appearance: none;
-   -webkit-appearance: none;
-   outline: none;
-   border: 0;
-   position: absolute;
-   z-index: 1;
-   bottom: 3.5em;
-   width: 100%;
-   background: rgba(255,255,255,.95);
-   padding: 1em;
-   line-height: 1;
-   color: #111;
-   font-weight: 700;
-   cursor: pointer;
+    display: none;
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+    border: 0;
+    position: absolute;
+    z-index: 1;
+    bottom: 3.5em;
+    width: 100%;
+    background: rgba(255, 255, 255, .95);
+    padding: 1em;
+    line-height: 1;
+    color: #111;
+    font-weight: 700;
+    cursor: pointer;
 }
+
+.endgame-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    padding: 1em;
+}
+
+.endgame-modal.hidden {
+    display: none;
+}
+
+.endgame-panel {
+    background: rgba(6, 24, 39, 0.98);
+    border: 2px solid #FCDB1A;
+    border-radius: 16px;
+    width: min(540px, 100%);
+    max-height: min(90vh, 760px);
+    overflow-y: auto;
+    padding: 24px;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+}
+
+.endgame-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(252, 219, 26, 0.25);
+    padding-bottom: 1rem;
+}
+
+.endgame-header h2 {
+    margin: 0;
+    color: #FCDB1A;
+    font-size: 2rem;
+}
+
+.endgame-body {
+    color: #f3f5f7;
+    display: grid;
+    gap: 1.25rem;
+}
+
+.endgame-summary {
+    margin: 0;
+    color: #dcdcdc;
+}
+
+.endgame-results {
+    display: grid;
+    gap: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 1rem;
+    border-radius: 12px;
+}
+
+.endgame-results div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    color: #fff;
+    font-size: 0.95rem;
+}
+
+.leaderboard-section,
+.credits-section {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.leaderboard-section h3,
+.credits-section h3 {
+    margin: 0 0 0.75rem;
+    color: #FCDB1A;
+    font-size: 1.1rem;
+}
+
+.leaderboard-list {
+    margin: 0;
+    padding-left: 1.35rem;
+    color: #f3f5f7;
+}
+
+.leaderboard-list li {
+    margin-bottom: 0.5rem;
+}
+
+.leaderboard-note {
+    margin: 0.75rem 0 0;
+    color: #c0c0c0;
+    font-size: 0.9rem;
+}
+
+.endgame-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+#play-again {
+    appearance: none;
+    -webkit-appearance: none;
+    border: 0;
+    padding: 0.85rem 1.2rem;
+    border-radius: 8px;
+    background: #FCDB1A;
+    color: #111;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+#play-again:hover {
+    transform: translateY(-1px);
+}
+
 #table {
-   opacity: 0;
-   width: 100%;
-   padding: 15px 0;
+    opacity: 0;
+    width: 100%;
+    padding: 15px 0;
 }
-#table > div {
-   position: relative;
-   margin-bottom: 10px;
+
+#table>div {
+    position: relative;
+    margin-bottom: 10px;
 }
-#table > div:last-child {
-   margin-bottom: 0;
+
+#table>div:last-child {
+    margin-bottom: 0;
 }
-#table > div::after {
-   content: '';
-   display: table-cell;
-   clear: both;
+
+#table>div::after {
+    content: '';
+    display: table-cell;
+    clear: both;
 }
+
 #table ul {
-   display: inline-block;
-   padding: 0;
+    display: inline-block;
+    padding: 0;
 }
-#table > div > ul {
-   position: absolute;
-   top: 0;
-   left: 0;
-   width: 100%;
-   height: 100%;
+
+#table>div>ul {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
 }
+
 .pile {
-   display: block;
-   position: relative;
-   float: left;
-   width: 13%;
-   margin-right: 1.5%;
-   margin-bottom: 10px;
-   padding: 5px;
+    display: block;
+    position: relative;
+    float: left;
+    width: 13%;
+    margin-right: 1.5%;
+    margin-bottom: 10px;
+    padding: 5px;
 }
+
 .pile:last-child {
-   margin-right: 0;
+    margin-right: 0;
 }
+
 .pile::after {
-   content: '';
-   position: absolute;
-   top: 0;
-   left: 0;
-   width: 100%;
-   height: 100%;
-   border: 2px dotted rgba(0,0,0,.25);
-   border-radius: 5px;
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 2px dotted rgba(0, 0, 0, .25);
+    border-radius: 5px;
 }
+
 .card {
-   display: block;
-   position: absolute;
-   top: 0;
-   left: 0;
-   background-color: #ddd;
-   background-image: url('https://raw.githubusercontent.com/rodolfoedemjr-ai/sollitare/main/playing_cards_assets/1B.png');
-   background-size: contain;
-   background-repeat: no-repeat;
-   width: 100%;
-   height: 100%;
-   font-family: 'Suit-Regular', sans-serif;
-   font-size: 0.6vw;
-   border-radius: 5px;
-   z-index: -1;
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-color: #ddd;
+    background-image: url('cards/classic/backcard.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    width: 100%;
+    height: 100%;
+    font-family: 'Suit-Regular', sans-serif;
+    font-size: 0.6vw;
+    border-radius: 5px;
+    z-index: -1;
 }
+
 .card * {
-   pointer-events: none;
+    pointer-events: none;
 }
+
 .card.dragging {
-   opacity: 0.85;
-   transform: scale(1.02);
-   box-shadow: 0 14px 30px rgba(0,0,0,0.35);
-   transition: none;
+    opacity: 0.85;
+    transform: scale(1.02);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+    transition: none;
 }
+
 .card.drag-source {
-   opacity: 0.35;
+    opacity: 0.35;
 }
+
 @media screen and (min-width: 768px) {
-   .card {
-      font-size: 0.325em;
-   }
-   .pile::after, .card {
-      border-radius: 10px;
-   }
+    .card {
+        font-size: 0.325em;
+    }
+    .pile::after,
+    .card {
+        border-radius: 10px;
+    }
 }
+
 @media screen and (min-width: 992px) {
-   .card {
-      font-size: 0.425em;
-   }
+    .card {
+        font-size: 0.425em;
+    }
 }
+
 @media screen and (min-width: 1200px) {
-   .card {
-      font-size: 0.525em;
-   }
+    .card {
+        font-size: 0.525em;
+    }
 }
-.card > div {
-   display: none;
+
+.card>div {
+    display: none;
 }
+
 .card.up {
-   background-image: url('https://bfa.github.io/solitaire-js/img/card_face_bg.png');
-   background-repeat: repeat;
-   color: #111;
+    background-image: url('cards/classic/card_face_bg.png');
+    background-repeat: repeat;
+    color: #111;
 }
-.card.up > div {
-   display: block;
+
+.card.up>div {
+    display: block;
 }
+
 .card::before {
-   content: '';
-   display: block;
-   position: absolute;
-   width: 100%;
-   height: 100%;
-   border-radius: 5px;
+    content: '';
+    display: block;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 5px;
 }
+
 .card[data-selected="true"]::before {
-   box-shadow: 0 0 6px 3px #FCDB1A;
+    box-shadow: 0 0 6px 3px #FCDB1A;
 }
+
 @media screen and (min-width: 768px) {
-   .card::before {
-      border-radius: 10px;
-   }
+    .card::before {
+        border-radius: 10px;
+    }
 }
+
 .card .suit {
-   font-size: 5.8em;
-   font-weight: normal;
-   width: 0.6896551724137931em;
-   height: 0.786206896551724em;
-   line-height: 0.786206896551724em;
-   position: absolute;
-   text-align: center;
+    font-size: 5.8em;
+    font-weight: normal;
+    width: 0.6896551724137931em;
+    height: 0.786206896551724em;
+    line-height: 0.786206896551724em;
+    position: absolute;
+    text-align: center;
 }
+
 @media screen and (max-width: 767px) {
-   .card > div > .suit {
-      display: none;
-   }
+    .card>div>.suit {
+        display: none;
+    }
 }
+
 .card .heart,
 .card .diamond {
-   color: #cc0000;
+    color: #cc0000;
 }
-.card .spade .suit::before { content: '♠' }
-.card .heart .suit::before { content: '♥' }
-.card .diamond .suit::before { content: '♦' }
-.card .club .suit::before { content: '♣' }
+
+.card .spade .suit::before {
+    content: '♠'
+}
+
+.card .heart .suit::before {
+    content: '♥'
+}
+
+.card .diamond .suit::before {
+    content: '♦'
+}
+
+.card .club .suit::before {
+    content: '♣'
+}
+
 .card .corner {
-   line-height: 1;
-   position: absolute;
-   text-align: center;
+    line-height: 1;
+    position: absolute;
+    text-align: center;
 }
+
 .card .corner span {
-   display: block;
-   font-size: 9em;
-   font-weight: bold;
-   width: 1em;
-   text-align: center;
+    display: block;
+    font-size: 9em;
+    font-weight: bold;
+    width: 1em;
+    text-align: center;
 }
+
 @media screen and (min-width: 768px) {
-   .card .corner span {
-      font-size: 3em;
-   }
+    .card .corner span {
+        font-size: 3em;
+    }
 }
+
 .card .corner .suit {
-   margin-top: 0;
-   margin-left: 0;
+    margin-top: 0;
+    margin-left: 0;
 }
+
 .card .corner.top {
-   left: 0.64em;
-   top: 0.96em;
+    left: 0.64em;
+    top: 0.96em;
 }
+
 .card .corner.bottom {
-   bottom: 0.96em;
-   right: 0.64em;
-   -ms-transform: rotate(180deg);
-   -moz-transform: rotate(180deg);
-   -webkit-transform: rotate(180deg);
-   transform: rotate(180deg);
+    bottom: 0.96em;
+    right: 0.64em;
+    -ms-transform: rotate(180deg);
+    -moz-transform: rotate(180deg);
+    -webkit-transform: rotate(180deg);
+    transform: rotate(180deg);
 }
+
 .card .ace span.suit.middle_center {
-   font-size: 10.24em;
-   left: 50%;
-   top: 50%;
-   margin-top: -0.5em;
-   margin-left: -0.35em;
+    font-size: 10.24em;
+    left: 50%;
+    top: 50%;
+    margin-top: -0.5em;
+    margin-left: -0.35em;
 }
+
 .card .face::before {
-   display: none;
-   content: '';
-   position: absolute;
-   top: 15.25%;
-   left: 19%;
-   width: 62%;
-   height: 70.5%;
-   background-repeat: no-repeat;
-   background-size: contain;
+    display: none;
+    content: '';
+    position: absolute;
+    top: 15.25%;
+    left: 19%;
+    width: 62%;
+    height: 70.5%;
+    background-repeat: no-repeat;
+    background-size: contain;
 }
+
 @media screen and (min-width: 768px) {
-   .card .face::before {
-      display: block;
-   }
+    .card .face::before {
+        display: block;
+    }
 }
+
 .card .spade.king .face::before {
-   background-image: url('https://bfa.github.io/solitaire-js/img/face-king-spade.png');
+    background-image: url('cards/classic/face-king-spade.png');
 }
+
 .card .spade.queen .face::before {
-   background-image: url('https://bfa.github.io/solitaire-js/img/face-queen-spade.png');
+    background-image: url('cards/classic/face-queen-spade.png');
 }
+
 .card .spade.jack .face::before {
-   background-image: url('https://bfa.github.io/solitaire-js/img/face-jack-spade.png');
+    background-image: url('cards/classic/face-jack-spade.png');
 }
+
 .card .heart.king .face::before {
-   background-image: url('https://bfa.github.io/solitaire-js/img/face-king-heart.png');
+    background-image: url('cards/classic/face-king-heart.png');
 }
+
 .card .heart.queen .face::before {
-   background-image: url('https://bfa.github.io/solitaire-js/img/face-queen-heart.png');
+    background-image: url('cards/classic/face-queen-heart.png');
 }
+
 .card .heart.jack .face::before {
-   background-image: url('https://bfa.github.io/solitaire-js/img/face-jack-heart.png');
+    background-image: url('cards/classic/face-jack-heart.png');
 }
+
 .card .diamond.king .face::before {
-   background-image: url('https://bfa.github.io/solitaire-js/img/face-king-diamond.png');
+    background-image: url('cards/classic/face-king-diamond.png');
 }
+
 .card .diamond.queen .face::before {
-   background-image: url('https://bfa.github.io/solitaire-js/img/face-queen-diamond.png');
+    background-image: url('cards/classic/face-queen-diamond.png');
 }
+
 .card .diamond.jack .face::before {
-   background-image: url('https://bfa.github.io/solitaire-js/img/face-jack-diamond.png');
+    background-image: url('cards/classic/face-jack-diamond.png');
 }
+
 .card .club.king .face::before {
-   background-image: url('https://bfa.github.io/solitaire-js/img/face-king-club.png');
+    background-image: url('cards/classic/face-king-club.png');
 }
+
 .card .club.queen .face::before {
-   background-image: url('https://bfa.github.io/solitaire-js/img/face-queen-club.png');
+    background-image: url('cards/classic/face-queen-club.png');
 }
+
 .card .club.jack .face::before {
-   background-image: url('https://bfa.github.io/solitaire-js/img/face-jack-club.png');
+    background-image: url('cards/classic/face-jack-club.png');
 }
+
 .card .suit.top_center {
-   left: 50%;
-   top: 0;
-   margin-left: -0.35em;
-   margin-top: 0.65em;
+    left: 50%;
+    top: 0;
+    margin-left: -0.35em;
+    margin-top: 0.65em;
 }
+
 .card .suit.top_left {
-   left: 0;
-   top: 0;
-   margin-left: 0.65em;
-   margin-top: 0.65em;
+    left: 0;
+    top: 0;
+    margin-left: 0.65em;
+    margin-top: 0.65em;
 }
+
 .card .suit.top_right {
-   right: 0;
-   top: 0;
-   margin-right: 0.65em;
-   margin-top: 0.65em;
+    right: 0;
+    top: 0;
+    margin-right: 0.65em;
+    margin-top: 0.65em;
 }
+
 .card .suit.middle_center {
-   left: 50%;
-   top: 50%;
-   margin-left: -0.35em;
-   margin-top: -0.5em;
+    left: 50%;
+    top: 50%;
+    margin-left: -0.35em;
+    margin-top: -0.5em;
 }
+
 .card .suit.middle_top {
-   left: 50%;
-   top: 0;
-   margin-left: -0.35em;
-   margin-top: 1.25em;
+    left: 50%;
+    top: 0;
+    margin-left: -0.35em;
+    margin-top: 1.25em;
 }
+
 .card .suit.middle_bottom {
-   bottom: 0;
-   left: 50%;
-   margin-bottom: 0.65em;
-   margin-left: -0.35em;
-   -ms-transform: rotate(180deg);
-   -moz-transform: rotate(180deg);
-   -webkit-transform: rotate(180deg);
-   transform: rotate(180deg);
+    bottom: 0;
+    left: 50%;
+    margin-bottom: 0.65em;
+    margin-left: -0.35em;
+    -ms-transform: rotate(180deg);
+    -moz-transform: rotate(180deg);
+    -webkit-transform: rotate(180deg);
+    transform: rotate(180deg);
 }
+
 .card .suit.middle_left {
-   left: 0;
-   top: 50%;
-   margin-left: 0.65em;
-   margin-top: -0.5em;
+    left: 0;
+    top: 50%;
+    margin-left: 0.65em;
+    margin-top: -0.5em;
 }
+
 .card .suit.middle_right {
-   right: 0;
-   top: 50%;
-   margin-right: 0.65em;
-   margin-top: -0.5em;
+    right: 0;
+    top: 50%;
+    margin-right: 0.65em;
+    margin-top: -0.5em;
 }
+
 .card .suit.middle_top_center {
-   left: 50%;
-   top: 50%;
-   margin-left: -0.35em;
-   margin-top: -1.35em;
+    left: 50%;
+    top: 50%;
+    margin-left: -0.35em;
+    margin-top: -1.35em;
 }
+
 .card .suit.middle_top_left {
-   left: 0;
-   top: 50%;
-   margin-left: 0.65em;
-   margin-top: -1em;
+    left: 0;
+    top: 50%;
+    margin-left: 0.65em;
+    margin-top: -1em;
 }
+
 .card .suit.middle_top_right {
-   right: 0;
-   top: 50%;
-   margin-right: 0.65em;
-   margin-top: -1em;
+    right: 0;
+    top: 50%;
+    margin-right: 0.65em;
+    margin-top: -1em;
 }
+
 .card .suit.middle_bottom_left {
-   bottom: 50%;
-   left: 0;
-   margin-left: 0.65em;
-   margin-bottom: -1em;
-   -ms-transform: rotate(180deg);
-   -moz-transform: rotate(180deg);
-   -webkit-transform: rotate(180deg);
-   transform: rotate(180deg);
+    bottom: 50%;
+    left: 0;
+    margin-left: 0.65em;
+    margin-bottom: -1em;
+    -ms-transform: rotate(180deg);
+    -moz-transform: rotate(180deg);
+    -webkit-transform: rotate(180deg);
+    transform: rotate(180deg);
 }
+
 .card .suit.middle_bottom_right {
-   bottom: 50%;
-   right: 0;
-   margin-bottom: -1em;
-   margin-right: 0.65em;
-   -ms-transform: rotate(180deg);
-   -moz-transform: rotate(180deg);
-   -webkit-transform: rotate(180deg);
-   transform: rotate(180deg);
+    bottom: 50%;
+    right: 0;
+    margin-bottom: -1em;
+    margin-right: 0.65em;
+    -ms-transform: rotate(180deg);
+    -moz-transform: rotate(180deg);
+    -webkit-transform: rotate(180deg);
+    transform: rotate(180deg);
 }
+
 .card .suit.middle_bottom_center {
-   bottom: 50%;
-   left: 50%;
-   margin-bottom: -1.35em;
-   margin-left: -0.35em;
-   -ms-transform: rotate(180deg);
-   -moz-transform: rotate(180deg);
-   -webkit-transform: rotate(180deg);
-   transform: rotate(180deg);
+    bottom: 50%;
+    left: 50%;
+    margin-bottom: -1.35em;
+    margin-left: -0.35em;
+    -ms-transform: rotate(180deg);
+    -moz-transform: rotate(180deg);
+    -webkit-transform: rotate(180deg);
+    transform: rotate(180deg);
 }
+
 .card .suit.bottom_center {
-   bottom: 0;
-   left: 50%;
-   margin-bottom: 0.65em;
-   margin-left: -0.35em;
-   -ms-transform: rotate(180deg);
-   -moz-transform: rotate(180deg);
-   -webkit-transform: rotate(180deg);
-   transform: rotate(180deg);
+    bottom: 0;
+    left: 50%;
+    margin-bottom: 0.65em;
+    margin-left: -0.35em;
+    -ms-transform: rotate(180deg);
+    -moz-transform: rotate(180deg);
+    -webkit-transform: rotate(180deg);
+    transform: rotate(180deg);
 }
+
 .card .suit.bottom_left {
-   bottom: 0;
-   left: 0;
-   margin-bottom: 0.65em;
-   margin-left: 0.65em;
-   -ms-transform: rotate(180deg);
-   -moz-transform: rotate(180deg);
-   -webkit-transform: rotate(180deg);
-   transform: rotate(180deg);
+    bottom: 0;
+    left: 0;
+    margin-bottom: 0.65em;
+    margin-left: 0.65em;
+    -ms-transform: rotate(180deg);
+    -moz-transform: rotate(180deg);
+    -webkit-transform: rotate(180deg);
+    transform: rotate(180deg);
 }
+
 .card .suit.bottom_right {
-   bottom: 0;
-   right: 0;
-   margin-bottom: 0.65em;
-   margin-right: 0.65em;
-   -ms-transform: rotate(180deg);
-   -moz-transform: rotate(180deg);
-   -webkit-transform: rotate(180deg);
-   transform: rotate(180deg);
+    bottom: 0;
+    right: 0;
+    margin-bottom: 0.65em;
+    margin-right: 0.65em;
+    -ms-transform: rotate(180deg);
+    -moz-transform: rotate(180deg);
+    -webkit-transform: rotate(180deg);
+    transform: rotate(180deg);
 }
+
 .card:nth-child(1),
 .card:nth-child(2),
 .card:nth-child(3),
 .card:nth-child(4),
 .card:nth-child(5) {
-   box-shadow: 0 0 5px rgba(0,0,0,.25), 0 2px 1px rgba(0,0,0,.5);
-   z-index: 1;
+    box-shadow: 0 0 5px rgba(0, 0, 0, .25), 0 2px 1px rgba(0, 0, 0, .5);
+    z-index: 1;
 }
-.card:nth-child(1) { top: 0; z-index: 5; }
-.card:nth-child(2) { top: 2px; z-index: 4; }
-.card:nth-child(3) { top: 4px; z-index: 3; }
-.card:nth-child(4) { top: 6px; z-index: 2; }
-.card:nth-child(5) { top: 8px; z-index: 1; }
+
+.card:nth-child(1) {
+    top: 0;
+    z-index: 5;
+}
+
+.card:nth-child(2) {
+    top: 2px;
+    z-index: 4;
+}
+
+.card:nth-child(3) {
+    top: 4px;
+    z-index: 3;
+}
+
+.card:nth-child(4) {
+    top: 6px;
+    z-index: 2;
+}
+
+.card:nth-child(5) {
+    top: 8px;
+    z-index: 1;
+}
+
 
 /* stock */
-   .stock {
-      z-index: 1;
-   }
-   .stock .reload-icon {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      font-size: 3vw;
-      font-weight: bold;
-      line-height: 1;
-      opacity: 0.25;
-      z-index: 1;
-   }
-   @media screen and (max-width: 767px) {
-      .stock .reload-icon {
-         font-size: 5vw;
-      }
-   }
-   .stock .reload-icon span {
-      display: block;
-      position: absolute;
-      top: 50%;
-      left: 0;
-      width: 100%;
-      text-align: center;
-      padding: 0.25em;
-      margin-top: -0.75em;
-      pointer-events: none;
-   }
-   .stock .reload-icon span::before,
-   .stock .reload-icon span::after {
-      content: '';
-      display: inline-block;
-      border-style: solid;
-   }
-   .stock .reload-icon span::before {
-      width: 1.25em;
-      height: 1.25em;
-      border-color: transparent black black black;
-      border-radius: 50%;
-      border-width: .125em;
-      -webkit-transform: rotate(45deg);
-      transform: rotate(45deg);
-   }
-   .stock .reload-icon span::after {
-      position: absolute;
-      top: 0;
-      left: 50%;
-      width: 0;
-      height: 0;
-      border-color: transparent transparent transparent black;
-      border-width: .3125em 0 .3125em .5em;
-   }
+
+.stock {
+    z-index: 1;
+}
+
+.stock .reload-icon {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    font-size: 3vw;
+    font-weight: bold;
+    line-height: 1;
+    opacity: 0.25;
+    z-index: 1;
+}
+
+@media screen and (max-width: 767px) {
+    .stock .reload-icon {
+        font-size: 5vw;
+    }
+}
+
+.stock .reload-icon span {
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    padding: 0.25em;
+    margin-top: -0.75em;
+    pointer-events: none;
+}
+
+.stock .reload-icon span::before,
+.stock .reload-icon span::after {
+    content: '';
+    display: inline-block;
+    border-style: solid;
+}
+
+.stock .reload-icon span::before {
+    width: 1.25em;
+    height: 1.25em;
+    border-color: transparent black black black;
+    border-radius: 50%;
+    border-width: .125em;
+    -webkit-transform: rotate(45deg);
+    transform: rotate(45deg);
+}
+
+.stock .reload-icon span::after {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-color: transparent transparent transparent black;
+    border-width: .3125em 0 .3125em .5em;
+}
 
 
 /* waste */
-   .waste {
-      z-index: 1;
-   }
+
+.waste {
+    z-index: 1;
+}
+
 
 /* foundation */
-   .fnd .pile {
-      left: 43.5%;
-   }
-   .fnd .pile::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 0;
-      width: 100%;
-      color: #000;
-      font-family: 'Suit-Regular', sans-serif;
-      font-size: 10vw;
-      margin-top: -0.6em;
-      line-height: 1;
-      text-align: center;
-      opacity: 0.25;
-   }
-   @media screen and (min-width: 768px) {
-      .fnd .pile::before {
-         font-size: 6em;
-      }
-   }
-   @media screen and (min-width: 992px) {
-      .fnd .pile::before {
-         font-size: 7em;
-      }
-   }
-   @media screen and (min-width: 1200px) {
-      .fnd .pile::before {
-         font-size: 8em;
-      }
-   }
-   .fnd .pile.spades::before { content: '♠' }
-   .fnd .pile.hearts::before { content: '♥' }
-   .fnd .pile.diamonds::before { content: '♦' }
-   .fnd .pile.clubs::before { content: '♣' }
+
+.fnd .pile {
+    left: 43.5%;
+}
+
+.fnd .pile::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    color: #000;
+    font-family: 'Suit-Regular', sans-serif;
+    font-size: 10vw;
+    margin-top: -0.6em;
+    line-height: 1;
+    text-align: center;
+    opacity: 0.25;
+}
+
+@media screen and (min-width: 768px) {
+    .fnd .pile::before {
+        font-size: 6em;
+    }
+}
+
+@media screen and (min-width: 992px) {
+    .fnd .pile::before {
+        font-size: 7em;
+    }
+}
+
+@media screen and (min-width: 1200px) {
+    .fnd .pile::before {
+        font-size: 8em;
+    }
+}
+
+.fnd .pile.spades::before {
+    content: '♠'
+}
+
+.fnd .pile.hearts::before {
+    content: '♥'
+}
+
+.fnd .pile.diamonds::before {
+    content: '♦'
+}
+
+.fnd .pile.clubs::before {
+    content: '♣'
+}
+
 
 /* tableau */
-   .tab .card {
-      box-shadow: 0 0 5px rgba(0,0,0,.5);
-      z-index: 1;
-      margin-bottom: 10em;
-   }
-   /* face up */
-   .tab .card:nth-child(2) { top: 6em; left: 0; }
-   .tab .card:nth-child(3) { top: 12em; left: 0; }
-   .tab .card:nth-child(4) { top: 18em; left: 0; }
-   .tab .card:nth-child(5) { top: 24em; left: 0; }
-   .tab .card:nth-child(6) { top: 30em; left: 0; }
-   .tab .card:nth-child(7) { top: 36em;  left: 0; }
-   .tab .card:nth-child(8) { top: 42em;  left: 0; }
-   .tab .card:nth-child(9) { top: 48em;  left: 0; }
-   .tab .card:nth-child(10) { top: 54em;  left: 0; }
-   .tab .card:nth-child(11) { top: 60em;  left: 0; }
-   .tab .card:nth-child(12) { top: 66em;  left: 0; }
-   .tab .card:nth-child(13) { top: 72em;  left: 0; }
-   .tab .card:nth-child(14) { top: 78em;  left: 0; }
-   .tab .card:nth-child(15) { top: 84em;  left: 0; }
-   .tab .card:nth-child(16) { top: 90em;  left: 0; }
-   .tab .card:nth-child(17) { top: 96em;  left: 0; }
-   .tab .card:nth-child(18) { top: 102em;  left: 0; }
-   .tab .card:nth-child(19) { top: 108em;  left: 0; }
-   .tab .card:nth-child(20) { top: 114em;  left: 0; }
-   .tab .card:nth-child(21) { top: 120em;  left: 0; }
-   /* face down */
-   .tab .pile[data-unplayed='1'] .card:nth-child(2),
-   .tab .pile[data-unplayed='2'] .card:nth-child(2),
-   .tab .pile[data-unplayed='3'] .card:nth-child(2),
-   .tab .pile[data-unplayed='4'] .card:nth-child(2),
-   .tab .pile[data-unplayed='5'] .card:nth-child(2),
-   .tab .pile[data-unplayed='6'] .card:nth-child(2) { top: 3em; }
-   .tab .pile[data-unplayed='2'] .card:nth-child(3),
-   .tab .pile[data-unplayed='3'] .card:nth-child(3),
-   .tab .pile[data-unplayed='4'] .card:nth-child(3),
-   .tab .pile[data-unplayed='5'] .card:nth-child(3),
-   .tab .pile[data-unplayed='6'] .card:nth-child(3) { top: 6em; }
-   .tab .pile[data-unplayed='3'] .card:nth-child(4),
-   .tab .pile[data-unplayed='4'] .card:nth-child(4),
-   .tab .pile[data-unplayed='5'] .card:nth-child(4),
-   .tab .pile[data-unplayed='6'] .card:nth-child(4) { top: 9em; }
-   .tab .pile[data-unplayed='4'] .card:nth-child(5),
-   .tab .pile[data-unplayed='5'] .card:nth-child(5),
-   .tab .pile[data-unplayed='6'] .card:nth-child(5) { top: 12em; }
-   .tab .pile[data-unplayed='5'] .card:nth-child(6),
-   .tab .pile[data-unplayed='6'] .card:nth-child(6) { top: 15em; }
-   .tab .pile[data-unplayed='6'] .card:nth-child(7) { top: 18em; }
-   /* piles with odd # of face down cards */
-   .tab .pile[data-unplayed='1'] .card:nth-child(3) { top: 9em; left: 0; }
-   .tab .pile[data-unplayed='1'] .card:nth-child(4),
-   .tab .pile[data-unplayed='3'] .card:nth-child(5) { top: 15em; left: 0; }
-   .tab .pile[data-unplayed='1'] .card:nth-child(5),
-   .tab .pile[data-unplayed='3'] .card:nth-child(6),
-   .tab .pile[data-unplayed='5'] .card:nth-child(7) { top: 21em; left: 0; }
-   .tab .pile[data-unplayed='1'] .card:nth-child(6),
-   .tab .pile[data-unplayed='3'] .card:nth-child(7),
-   .tab .pile[data-unplayed='5'] .card:nth-child(8) { top: 27em; left: 0; }
-   .tab .pile[data-unplayed='1'] .card:nth-child(7),
-   .tab .pile[data-unplayed='3'] .card:nth-child(8),
-   .tab .pile[data-unplayed='5'] .card:nth-child(9) { top: 33em;  left: 0; }
-   .tab .pile[data-unplayed='1'] .card:nth-child(8),
-   .tab .pile[data-unplayed='3'] .card:nth-child(9),
-   .tab .pile[data-unplayed='5'] .card:nth-child(10) { top: 39em;  left: 0; }
-   .tab .pile[data-unplayed='1'] .card:nth-child(9),
-   .tab .pile[data-unplayed='3'] .card:nth-child(10),
-   .tab .pile[data-unplayed='5'] .card:nth-child(11) { top: 45em;  left: 0; }
-   .tab .pile[data-unplayed='1'] .card:nth-child(10),
-   .tab .pile[data-unplayed='3'] .card:nth-child(11),
-   .tab .pile[data-unplayed='5'] .card:nth-child(12) { top: 51em;  left: 0; }
-   .tab .pile[data-unplayed='1'] .card:nth-child(11),
-   .tab .pile[data-unplayed='3'] .card:nth-child(12),
-   .tab .pile[data-unplayed='5'] .card:nth-child(13) { top: 57em;  left: 0; }
-   .tab .pile[data-unplayed='1'] .card:nth-child(12),
-   .tab .pile[data-unplayed='3'] .card:nth-child(13),
-   .tab .pile[data-unplayed='5'] .card:nth-child(14) { top: 63em;  left: 0; }
-   .tab .pile[data-unplayed='1'] .card:nth-child(13),
-   .tab .pile[data-unplayed='3'] .card:nth-child(14),
-   .tab .pile[data-unplayed='5'] .card:nth-child(15) { top: 69em;  left: 0; }
-   .tab .pile[data-unplayed='1'] .card:nth-child(14),
-   .tab .pile[data-unplayed='3'] .card:nth-child(15),
-   .tab .pile[data-unplayed='5'] .card:nth-child(16) { top: 75em;  left: 0; }
-   .tab .pile[data-unplayed='1'] .card:nth-child(15),
-   .tab .pile[data-unplayed='3'] .card:nth-child(16),
-   .tab .pile[data-unplayed='5'] .card:nth-child(17) { top: 81em;  left: 0; }
-   .tab .pile[data-unplayed='1'] .card:nth-child(16),
-   .tab .pile[data-unplayed='3'] .card:nth-child(17),
-   .tab .pile[data-unplayed='5'] .card:nth-child(18) { top: 87em;  left: 0; }
-   .tab .pile[data-unplayed='1'] .card:nth-child(17),
-   .tab .pile[data-unplayed='3'] .card:nth-child(18),
-   .tab .pile[data-unplayed='5'] .card:nth-child(19) { top: 93em;  left: 0; }
-   .tab .pile[data-unplayed='1'] .card:nth-child(18),
-   .tab .pile[data-unplayed='3'] .card:nth-child(19),
-   .tab .pile[data-unplayed='5'] .card:nth-child(20) { top: 99em;  left: 0; }
-   .tab .pile[data-unplayed='1'] .card:nth-child(19),
-   .tab .pile[data-unplayed='3'] .card:nth-child(20),
-   .tab .pile[data-unplayed='5'] .card:nth-child(21) { top: 105em;  left: 0; }
-   .tab .pile[data-unplayed='1'] .card:nth-child(20),
-   .tab .pile[data-unplayed='3'] .card:nth-child(21) { top: 111em;  left: 0; }
-   .tab .pile[data-unplayed='1'] .card:nth-child(21) { top: 117em;  left: 0; }
-   /* piles with even # of face down cards */
-   .tab .pile[data-unplayed='2'] .card:nth-child(4) { top: 12em; left: 0; }
-   .tab .pile[data-unplayed='2'] .card:nth-child(5),
-   .tab .pile[data-unplayed='4'] .card:nth-child(6) { top: 18em; left: 0; }
-   .tab .pile[data-unplayed='2'] .card:nth-child(6),
-   .tab .pile[data-unplayed='4'] .card:nth-child(7),
-   .tab .pile[data-unplayed='6'] .card:nth-child(8) { top: 24em; left: 0; }
-   .tab .pile[data-unplayed='2'] .card:nth-child(7),
-   .tab .pile[data-unplayed='4'] .card:nth-child(8),
-   .tab .pile[data-unplayed='6'] .card:nth-child(9) { top: 30em;  left: 0; }
-   .tab .pile[data-unplayed='2'] .card:nth-child(8),
-   .tab .pile[data-unplayed='4'] .card:nth-child(9),
-   .tab .pile[data-unplayed='6'] .card:nth-child(10) { top: 36em;  left: 0; }
-   .tab .pile[data-unplayed='2'] .card:nth-child(9),
-   .tab .pile[data-unplayed='4'] .card:nth-child(10),
-   .tab .pile[data-unplayed='6'] .card:nth-child(11) { top: 42em;  left: 0; }
-   .tab .pile[data-unplayed='2'] .card:nth-child(10),
-   .tab .pile[data-unplayed='4'] .card:nth-child(11),
-   .tab .pile[data-unplayed='6'] .card:nth-child(12) { top: 48em;  left: 0; }
-   .tab .pile[data-unplayed='2'] .card:nth-child(11),
-   .tab .pile[data-unplayed='4'] .card:nth-child(12),
-   .tab .pile[data-unplayed='6'] .card:nth-child(13) { top: 54em;  left: 0; }
-   .tab .pile[data-unplayed='2'] .card:nth-child(12),
-   .tab .pile[data-unplayed='4'] .card:nth-child(13),
-   .tab .pile[data-unplayed='6'] .card:nth-child(14) { top: 60em;  left: 0; }
-   .tab .pile[data-unplayed='2'] .card:nth-child(13),
-   .tab .pile[data-unplayed='4'] .card:nth-child(14),
-   .tab .pile[data-unplayed='6'] .card:nth-child(15) { top: 66em;  left: 0; }
-   .tab .pile[data-unplayed='2'] .card:nth-child(14),
-   .tab .pile[data-unplayed='4'] .card:nth-child(15),
-   .tab .pile[data-unplayed='6'] .card:nth-child(16) { top: 72em;  left: 0; }
-   .tab .pile[data-unplayed='2'] .card:nth-child(15),
-   .tab .pile[data-unplayed='4'] .card:nth-child(16),
-   .tab .pile[data-unplayed='6'] .card:nth-child(17) { top: 78em;  left: 0; }
-   .tab .pile[data-unplayed='2'] .card:nth-child(16),
-   .tab .pile[data-unplayed='4'] .card:nth-child(17),
-   .tab .pile[data-unplayed='6'] .card:nth-child(18) { top: 84em;  left: 0; }
-   .tab .pile[data-unplayed='2'] .card:nth-child(17),
-   .tab .pile[data-unplayed='4'] .card:nth-child(18),
-   .tab .pile[data-unplayed='6'] .card:nth-child(19) { top: 90em;  left: 0; }
-   .tab .pile[data-unplayed='2'] .card:nth-child(18),
-   .tab .pile[data-unplayed='4'] .card:nth-child(19),
-   .tab .pile[data-unplayed='6'] .card:nth-child(20) { top: 96em;  left: 0; }
-   .tab .pile[data-unplayed='2'] .card:nth-child(19),
-   .tab .pile[data-unplayed='4'] .card:nth-child(20),
-   .tab .pile[data-unplayed='6'] .card:nth-child(21) { top: 102em;  left: 0; }
-   .tab .pile[data-unplayed='2'] .card:nth-child(20),
-   .tab .pile[data-unplayed='4'] .card:nth-child(21) { top: 108em;  left: 0; }
-   .tab .pile[data-unplayed='2'] .card:nth-child(21) { top: 114em;  left: 0; }
-   /* Confetti */
-   #confetti {
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 10000;
-      pointer-events: none;
-      opacity: 0;
-   }
-   /* Disable Grammarly */
-   grammarly-card {
-       display: none;
-   }
 
-   /* Settings Button - Hamburger Menu */
-   .settings-btn {
-      position: fixed;
-      bottom: 20px;
-      left: 20px;
-      width: 40px;
-      height: 40px;
-      background: rgba(0, 0, 0, 0.6);
-      border: 2px solid #f3f5f7;
-      border-radius: 5px;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      gap: 6px;
-      z-index: 100;
-      transition: all 0.3s ease;
-      padding: 0;
-      outline: none;
-      -webkit-appearance: none;
-      appearance: none;
-   }
+.tab .card {
+    box-shadow: 0 0 5px rgba(0, 0, 0, .5);
+    z-index: 1;
+    margin-bottom: 10em;
+}
 
-   .settings-btn:hover {
-      background: rgba(0, 0, 0, 0.8);
-      border-color: #FCDB1A;
-      transform: scale(1.05);
-   }
 
-   .settings-btn span {
-      display: block;
-      width: 20px;
-      height: 3px;
-      background: #f3f5f7;
-      border-radius: 2px;
-      transition: all 0.3s ease;
-   }
+/* face up */
 
-   .settings-btn:hover span {
-      background: #FCDB1A;
-   }
+.tab .card:nth-child(2) {
+    top: 6em;
+    left: 0;
+}
 
-   /* Settings Modal */
-   .settings-modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 999;
-      opacity: 1;
-      transition: opacity 0.3s ease;
-   }
+.tab .card:nth-child(3) {
+    top: 12em;
+    left: 0;
+}
 
-   .settings-modal.hidden {
-      display: none;
-      opacity: 0;
-   }
+.tab .card:nth-child(4) {
+    top: 18em;
+    left: 0;
+}
 
-   .settings-panel {
-      background: rgba(0, 0, 0, 0.85);
-      border: 2px solid #FCDB1A;
-      border-radius: 10px;
-      padding: 20px;
-      max-width: 400px;
-      width: 90%;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
-      color: #f3f5f7;
-   }
+.tab .card:nth-child(5) {
+    top: 24em;
+    left: 0;
+}
 
-   .settings-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      border-bottom: 2px solid #FCDB1A;
-      padding-bottom: 10px;
-   }
+.tab .card:nth-child(6) {
+    top: 30em;
+    left: 0;
+}
 
-   .settings-header h2 {
-      margin: 0;
-      color: #FCDB1A;
-      font-size: 1.5rem;
-   }
+.tab .card:nth-child(7) {
+    top: 36em;
+    left: 0;
+}
 
-   .close-btn {
-      background: transparent;
-      border: none;
-      color: #FCDB1A;
-      font-size: 1.5rem;
-      cursor: pointer;
-      padding: 0;
-      width: 30px;
-      height: 30px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 3px;
-      transition: all 0.2s ease;
-      outline: none;
-   }
+.tab .card:nth-child(8) {
+    top: 42em;
+    left: 0;
+}
 
-   .close-btn:hover {
-      background: rgba(252, 219, 26, 0.2);
-      transform: scale(1.1);
-   }
+.tab .card:nth-child(9) {
+    top: 48em;
+    left: 0;
+}
 
-   .settings-content {
-      padding: 10px 0;
-   }
+.tab .card:nth-child(10) {
+    top: 54em;
+    left: 0;
+}
 
-   .settings-group {
-      margin-bottom: 20px;
-   }
+.tab .card:nth-child(11) {
+    top: 60em;
+    left: 0;
+}
 
-   .settings-group label {
-      display: block;
-      margin-bottom: 10px;
-      color: #FCDB1A;
-      font-weight: bold;
-      font-size: 1rem;
-   }
+.tab .card:nth-child(12) {
+    top: 66em;
+    left: 0;
+}
 
-   .background-options {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-   }
+.tab .card:nth-child(13) {
+    top: 72em;
+    left: 0;
+}
 
-   .bg-option {
-      background: transparent;
-      border: 2px solid rgba(243, 245, 247, 0.5);
-      border-radius: 8px;
-      padding: 10px;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s ease;
-      outline: none;
-      -webkit-appearance: none;
-      appearance: none;
-   }
+.tab .card:nth-child(14) {
+    top: 78em;
+    left: 0;
+}
 
-   .bg-option:hover {
-      border-color: #FCDB1A;
-      transform: translateY(-2px);
-      box-shadow: 0 0 10px rgba(252, 219, 26, 0.3);
-   }
+.tab .card:nth-child(15) {
+    top: 84em;
+    left: 0;
+}
 
-   .bg-option.active {
-      border-color: #FCDB1A;
-      background: rgba(252, 219, 26, 0.1);
-      box-shadow: 0 0 15px rgba(252, 219, 26, 0.5);
-   }
+.tab .card:nth-child(16) {
+    top: 90em;
+    left: 0;
+}
 
-   .bg-preview {
-      width: 100%;
-      height: 60px;
-      border-radius: 5px;
-      border: 1px solid rgba(243, 245, 247, 0.3);
-      transition: all 0.2s ease;
-   }
+.tab .card:nth-child(17) {
+    top: 96em;
+    left: 0;
+}
 
-   .bg-option:hover .bg-preview {
-      border-color: #FCDB1A;
-   }
+.tab .card:nth-child(18) {
+    top: 102em;
+    left: 0;
+}
 
-   .bg-option span {
-      color: #f3f5f7;
-      font-size: 0.9rem;
-      font-weight: 500;
-   }
+.tab .card:nth-child(19) {
+    top: 108em;
+    left: 0;
+}
+
+.tab .card:nth-child(20) {
+    top: 114em;
+    left: 0;
+}
+
+.tab .card:nth-child(21) {
+    top: 120em;
+    left: 0;
+}
+
+
+/* face down */
+
+.tab .pile[data-unplayed='1'] .card:nth-child(2),
+.tab .pile[data-unplayed='2'] .card:nth-child(2),
+.tab .pile[data-unplayed='3'] .card:nth-child(2),
+.tab .pile[data-unplayed='4'] .card:nth-child(2),
+.tab .pile[data-unplayed='5'] .card:nth-child(2),
+.tab .pile[data-unplayed='6'] .card:nth-child(2) {
+    top: 3em;
+}
+
+.tab .pile[data-unplayed='2'] .card:nth-child(3),
+.tab .pile[data-unplayed='3'] .card:nth-child(3),
+.tab .pile[data-unplayed='4'] .card:nth-child(3),
+.tab .pile[data-unplayed='5'] .card:nth-child(3),
+.tab .pile[data-unplayed='6'] .card:nth-child(3) {
+    top: 6em;
+}
+
+.tab .pile[data-unplayed='3'] .card:nth-child(4),
+.tab .pile[data-unplayed='4'] .card:nth-child(4),
+.tab .pile[data-unplayed='5'] .card:nth-child(4),
+.tab .pile[data-unplayed='6'] .card:nth-child(4) {
+    top: 9em;
+}
+
+.tab .pile[data-unplayed='4'] .card:nth-child(5),
+.tab .pile[data-unplayed='5'] .card:nth-child(5),
+.tab .pile[data-unplayed='6'] .card:nth-child(5) {
+    top: 12em;
+}
+
+.tab .pile[data-unplayed='5'] .card:nth-child(6),
+.tab .pile[data-unplayed='6'] .card:nth-child(6) {
+    top: 15em;
+}
+
+.tab .pile[data-unplayed='6'] .card:nth-child(7) {
+    top: 18em;
+}
+
+
+/* piles with odd # of face down cards */
+
+.tab .pile[data-unplayed='1'] .card:nth-child(3) {
+    top: 9em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='1'] .card:nth-child(4),
+.tab .pile[data-unplayed='3'] .card:nth-child(5) {
+    top: 15em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='1'] .card:nth-child(5),
+.tab .pile[data-unplayed='3'] .card:nth-child(6),
+.tab .pile[data-unplayed='5'] .card:nth-child(7) {
+    top: 21em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='1'] .card:nth-child(6),
+.tab .pile[data-unplayed='3'] .card:nth-child(7),
+.tab .pile[data-unplayed='5'] .card:nth-child(8) {
+    top: 27em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='1'] .card:nth-child(7),
+.tab .pile[data-unplayed='3'] .card:nth-child(8),
+.tab .pile[data-unplayed='5'] .card:nth-child(9) {
+    top: 33em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='1'] .card:nth-child(8),
+.tab .pile[data-unplayed='3'] .card:nth-child(9),
+.tab .pile[data-unplayed='5'] .card:nth-child(10) {
+    top: 39em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='1'] .card:nth-child(9),
+.tab .pile[data-unplayed='3'] .card:nth-child(10),
+.tab .pile[data-unplayed='5'] .card:nth-child(11) {
+    top: 45em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='1'] .card:nth-child(10),
+.tab .pile[data-unplayed='3'] .card:nth-child(11),
+.tab .pile[data-unplayed='5'] .card:nth-child(12) {
+    top: 51em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='1'] .card:nth-child(11),
+.tab .pile[data-unplayed='3'] .card:nth-child(12),
+.tab .pile[data-unplayed='5'] .card:nth-child(13) {
+    top: 57em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='1'] .card:nth-child(12),
+.tab .pile[data-unplayed='3'] .card:nth-child(13),
+.tab .pile[data-unplayed='5'] .card:nth-child(14) {
+    top: 63em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='1'] .card:nth-child(13),
+.tab .pile[data-unplayed='3'] .card:nth-child(14),
+.tab .pile[data-unplayed='5'] .card:nth-child(15) {
+    top: 69em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='1'] .card:nth-child(14),
+.tab .pile[data-unplayed='3'] .card:nth-child(15),
+.tab .pile[data-unplayed='5'] .card:nth-child(16) {
+    top: 75em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='1'] .card:nth-child(15),
+.tab .pile[data-unplayed='3'] .card:nth-child(16),
+.tab .pile[data-unplayed='5'] .card:nth-child(17) {
+    top: 81em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='1'] .card:nth-child(16),
+.tab .pile[data-unplayed='3'] .card:nth-child(17),
+.tab .pile[data-unplayed='5'] .card:nth-child(18) {
+    top: 87em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='1'] .card:nth-child(17),
+.tab .pile[data-unplayed='3'] .card:nth-child(18),
+.tab .pile[data-unplayed='5'] .card:nth-child(19) {
+    top: 93em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='1'] .card:nth-child(18),
+.tab .pile[data-unplayed='3'] .card:nth-child(19),
+.tab .pile[data-unplayed='5'] .card:nth-child(20) {
+    top: 99em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='1'] .card:nth-child(19),
+.tab .pile[data-unplayed='3'] .card:nth-child(20),
+.tab .pile[data-unplayed='5'] .card:nth-child(21) {
+    top: 105em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='1'] .card:nth-child(20),
+.tab .pile[data-unplayed='3'] .card:nth-child(21) {
+    top: 111em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='1'] .card:nth-child(21) {
+    top: 117em;
+    left: 0;
+}
+
+
+/* piles with even # of face down cards */
+
+.tab .pile[data-unplayed='2'] .card:nth-child(4) {
+    top: 12em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='2'] .card:nth-child(5),
+.tab .pile[data-unplayed='4'] .card:nth-child(6) {
+    top: 18em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='2'] .card:nth-child(6),
+.tab .pile[data-unplayed='4'] .card:nth-child(7),
+.tab .pile[data-unplayed='6'] .card:nth-child(8) {
+    top: 24em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='2'] .card:nth-child(7),
+.tab .pile[data-unplayed='4'] .card:nth-child(8),
+.tab .pile[data-unplayed='6'] .card:nth-child(9) {
+    top: 30em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='2'] .card:nth-child(8),
+.tab .pile[data-unplayed='4'] .card:nth-child(9),
+.tab .pile[data-unplayed='6'] .card:nth-child(10) {
+    top: 36em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='2'] .card:nth-child(9),
+.tab .pile[data-unplayed='4'] .card:nth-child(10),
+.tab .pile[data-unplayed='6'] .card:nth-child(11) {
+    top: 42em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='2'] .card:nth-child(10),
+.tab .pile[data-unplayed='4'] .card:nth-child(11),
+.tab .pile[data-unplayed='6'] .card:nth-child(12) {
+    top: 48em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='2'] .card:nth-child(11),
+.tab .pile[data-unplayed='4'] .card:nth-child(12),
+.tab .pile[data-unplayed='6'] .card:nth-child(13) {
+    top: 54em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='2'] .card:nth-child(12),
+.tab .pile[data-unplayed='4'] .card:nth-child(13),
+.tab .pile[data-unplayed='6'] .card:nth-child(14) {
+    top: 60em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='2'] .card:nth-child(13),
+.tab .pile[data-unplayed='4'] .card:nth-child(14),
+.tab .pile[data-unplayed='6'] .card:nth-child(15) {
+    top: 66em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='2'] .card:nth-child(14),
+.tab .pile[data-unplayed='4'] .card:nth-child(15),
+.tab .pile[data-unplayed='6'] .card:nth-child(16) {
+    top: 72em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='2'] .card:nth-child(15),
+.tab .pile[data-unplayed='4'] .card:nth-child(16),
+.tab .pile[data-unplayed='6'] .card:nth-child(17) {
+    top: 78em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='2'] .card:nth-child(16),
+.tab .pile[data-unplayed='4'] .card:nth-child(17),
+.tab .pile[data-unplayed='6'] .card:nth-child(18) {
+    top: 84em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='2'] .card:nth-child(17),
+.tab .pile[data-unplayed='4'] .card:nth-child(18),
+.tab .pile[data-unplayed='6'] .card:nth-child(19) {
+    top: 90em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='2'] .card:nth-child(18),
+.tab .pile[data-unplayed='4'] .card:nth-child(19),
+.tab .pile[data-unplayed='6'] .card:nth-child(20) {
+    top: 96em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='2'] .card:nth-child(19),
+.tab .pile[data-unplayed='4'] .card:nth-child(20),
+.tab .pile[data-unplayed='6'] .card:nth-child(21) {
+    top: 102em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='2'] .card:nth-child(20),
+.tab .pile[data-unplayed='4'] .card:nth-child(21) {
+    top: 108em;
+    left: 0;
+}
+
+.tab .pile[data-unplayed='2'] .card:nth-child(21) {
+    top: 114em;
+    left: 0;
+}
+
+
+/* Confetti */
+
+#confetti {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 10000;
+    pointer-events: none;
+    opacity: 0;
+}
+
+
+/* Disable Grammarly */
+
+grammarly-card {
+    display: none;
+}
+
+
+/* Settings Button - Hamburger Menu */
+
+.settings-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid #f3f5f7;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    z-index: 100;
+    transition: all 0.3s ease;
+    padding: 0;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.settings-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: #FCDB1A;
+    transform: scale(1.05);
+}
+
+.settings-btn span {
+    display: block;
+    width: 20px;
+    height: 3px;
+    background: #f3f5f7;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+.settings-btn:hover span {
+    background: #FCDB1A;
+}
+
+
+/* Settings Modal */
+
+.settings-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.settings-modal.hidden {
+    display: none;
+    opacity: 0;
+}
+
+.settings-panel {
+    background: rgba(0, 0, 0, 0.85);
+    border: 2px solid #FCDB1A;
+    border-radius: 10px;
+    padding: 20px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+    color: #f3f5f7;
+}
+
+.settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #FCDB1A;
+    padding-bottom: 10px;
+}
+
+.settings-header h2 {
+    margin: 0;
+    color: #FCDB1A;
+    font-size: 1.5rem;
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: #FCDB1A;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.close-btn:hover {
+    background: rgba(252, 219, 26, 0.2);
+    transform: scale(1.1);
+}
+
+.settings-content {
+    padding: 10px 0;
+}
+
+.settings-group {
+    margin-bottom: 20px;
+}
+
+.settings-group label {
+    display: block;
+    margin-bottom: 10px;
+    color: #FCDB1A;
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+.background-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.bg-option {
+    background: transparent;
+    border: 2px solid rgba(243, 245, 247, 0.5);
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.bg-option:hover {
+    border-color: #FCDB1A;
+    transform: translateY(-2px);
+    box-shadow: 0 0 10px rgba(252, 219, 26, 0.3);
+}
+
+.bg-option.active {
+    border-color: #FCDB1A;
+    background: rgba(252, 219, 26, 0.1);
+    box-shadow: 0 0 15px rgba(252, 219, 26, 0.5);
+}
+
+.bg-preview {
+    width: 100%;
+    height: 60px;
+    border-radius: 5px;
+    border: 1px solid rgba(243, 245, 247, 0.3);
+    transition: all 0.2s ease;
+}
+
+.bg-option:hover .bg-preview {
+    border-color: #FCDB1A;
+}
+
+.bg-option span {
+    color: #f3f5f7;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
