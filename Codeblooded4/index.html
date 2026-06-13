@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetNode Core Terminal</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div id="boot-sequence-shield">
+        <div class="boot-terminal-box">
+            <div class="boot-header">⚙️ NETNODE SYSTEM INITIALIZATION...</div>
+            <div id="boot-diagnostic-log"></div>
+            
+            <div id="boot-auth-form" class="boot-input-group">
+                <input type="text" id="boot-username-field" placeholder="INPUT CRYPTO HANDLE (e.g., Andres)..." autocomplete="off">
+                <button id="boot-connect-btn">SYNC OPERATIONAL GRIDS</button>
+            </div>
+
+            <div id="boot-progress-container" style="display:none;">
+                <div class="boot-progress-track"><div id="boot-progress-bar"></div></div>
+                <div id="boot-progress-percent">0%</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="onboarding-modal-overlay" class="modal-system-shutter-overlay">
+        <div class="modal-frame-window">
+            <h3>👤 INITIALIZE DATA PROFILE PROTOCOL</h3>
+            <p>New signature detected in terminal registry. Please input your network operational telemetry parameters to finalize database sync.</p>
+            
+            <div class="modal-input-element-row">
+                <label>Primary Core Focus Area</label>
+                <input type="text" id="onboard-focus" placeholder="e.g., Frontend Engineering, Cyber Security">
+            </div>
+            
+            <div class="modal-input-element-row">
+                <label>Operational Signature / Bio</label>
+                <input type="text" id="onboard-bio" placeholder="e.g., Developing software inside the CodeBlooded syndicate core.">
+            </div>
+            
+            <div class="modal-actions-tray-row" style="margin-top:0.5rem; display:flex; justify-content:flex-end;">
+                <button id="onboard-submit-btn" class="claim-bounty-btn">COMMIT INITIALIZATION RECORD</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="master-dashboard-layout system-hidden-state">
+        
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-brand">
+                <span class="pulse-node">⚡</span>
+                <h2>CODEBLOODED</h2>
+            </div>
+
+            <div class="sidebar-user-anchor-card">
+                <div class="anchor-avatar">💻</div>
+                <div class="anchor-meta-info">
+                    <div id="dev-name" class="anchor-handle">Awaiting Auth...</div>
+                    <div id="level-label" class="anchor-rank">RANK: LEVEL 1</div>
+                </div>
+                <div class="anchor-xp-progress-bar">
+                    <div id="xp-fill" class="anchor-xp-fill" style="width: 45%;"></div>
+                </div>
+                <div class="anchor-wallet-row">
+                    <span>STAKED CAPACITY:</span>
+                    <strong><span id="token-balance">250</span> CQ</strong>
+                </div>
+            </div>
+
+            <nav class="sidebar-navigation">
+                <button class="nav-tab active" data-target="view-profile">
+                    <span class="nav-icon">👤</span> PROFILE & GUILDS
+                </button>
+                <button class="nav-tab" data-target="view-social">
+                    <span class="nav-icon">📡</span> TIMELINE STREAM
+                </button>
+            </nav>
+        </aside>
+
+        <div class="viewport-main-frame">
+            
+            <section id="view-profile" class="workspace-view active">
+                <div class="split-view-container">
+                    
+                    <div class="workspace-main-panel">
+                        <div class="profile-identity-card-hull">
+                            <div class="hull-banner-graphic"></div>
+                            <div class="hull-content-wrap">
+                                <h2>MY LOGGED OPERATOR DATA</h2>
+                                <p class="hull-meta-text">Cryptographic data sync record managed via decentralized Firestore databases.</p>
+                                
+                                <div class="hull-stats-metric-row">
+                                    <div class="metric-item-box">
+                                        <span class="lbl">FOCUS METHOD</span>
+                                        <span class="val-accent" id="profile-pane-focus">Unassigned Node</span>
+                                    </div>
+                                    <div class="metric-item-box">
+                                        <span class="lbl">BIO DESCRIPTION</span>
+                                        <span class="val-glow" id="profile-pane-bio" style="font-size: 0.75rem;">No statement synchronized.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="guild-registry-hull">
+                            <div class="component-header-row">
+                                <h2>⚔️ ACTIVE GUILD DEPLOYMENT ALLIANCES</h2>
+                                <span class="system-tag-badge">ONLINE</span>
+                            </div>
+                            
+                            <div id="guild-status-card" class="guild-status-card-inner">
+                                <div class="guild-info-block">
+                                    <div class="guild-emblem">🛡️</div>
+                                    <div>
+                                        <h4 id="guild-name-display">NO ALLIANCE AFFILIATION FOUND</h4>
+                                        <p id="guild-meta-display" class="hull-meta-text">Independent operator node.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="guild-creation-form-box">
+                                <h3>REGISTER CUSTOM LOCALIZED ALLIANCE</h3>
+                                <div class="form-input-wrapper-row">
+                                    <input type="text" id="guild-name-input" placeholder="Input fresh unique Group Designation tag...">
+                                    <button id="create-guild-btn" class="claim-bounty-btn">FOUND SYNDICATE</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="workspace-side-panel">
+                        <div class="profile-radar-analytics-hull">
+                            <h2>📡 SYSTEM TELEMETRY RATIOS</h2>
+                            <p class="hull-meta-text">Calculates algorithm match routing parameters automatically based on bio signatures.</p>
+                            <div class="radar-vector-chart-simulation">
+                                <div class="vector-loading-row"><span>HARDWARE SYNERGY:</span><strong id="vector-hw" class="vector-value-metric">0%</strong></div>
+                                <div class="vector-loading-row"><span>WEB INTERFACE INTERCEPT:</span><strong id="vector-web" class="vector-value-metric">0%</strong></div>
+                                <div class="vector-loading-row"><span>DATA STREAM EXTRACTION:</span><strong id="vector-data" class="vector-value-metric">0%</strong></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <section id="view-social" class="workspace-view">
+                <div class="social-grid-layout">
+                    
+                    <div class="social-stream-feed-panel">
+                        <h2>📡 CODEBLOODED LIVE SYNDICATE NETWORK BROADCASTS</h2>
+                        
+                        <div class="post-broadcast-card">
+                            <textarea id="post-text-input" placeholder="Transmit open telemetry logs or project updates to the broadcast pipeline..."></textarea>
+                            <div class="post-actions-row">
+                                <input type="file" id="post-image-input" accept="image/*" style="display:none;">
+                                <label for="post-image-input" class="tab-btn-attach">📎 ATTACH FILE MEDIA</label>
+                                <button id="post-submit-btn" class="claim-bounty-btn">BROADCAST DATA</button>
+                            </div>
+                        </div>
+                        
+                        <div id="social-feed-timeline"></div>
+                    </div>
+
+                    <div class="social-chat-room-panel">
+                        <div class="scrolling-hud-inner-tray">
+                            <h2>👤 INTERCEPTED NODE HUD INSPECTOR</h2>
+                            
+                            <div id="profile-radar-card">
+                                <div class="radar-user-header">
+                                    <div class="radar-avatar">🎯</div>
+                                    <div>
+                                        <h3 id="radar-profile-name">Select Handle to Intercept</h3>
+                                        <span id="radar-profile-rank">RANK: UNKNOWN STATUS</span>
+                                    </div>
+                                </div>
+                                <div class="radar-meta-inspection-block" style="margin-top: 1rem; background: var(--bg-input); border: 1px solid var(--border); padding: 0.75rem; border-radius: 6px;">
+                                    <div style="font-size:0.6rem; color: var(--text-muted); font-weight:bold;">NODE FOCUS AREA:</div>
+                                    <div id="radar-profile-focus" style="color: var(--accent); font-size: 0.8rem; font-weight: bold; margin-bottom: 0.5rem;">Awaiting Intercept...</div>
+                                    
+                                    <div style="font-size:0.6rem; color: var(--text-muted); font-weight:bold;">NODE BIOGRAPHY DECK:</div>
+                                    <div id="radar-profile-bio" style="font-size: 0.75rem; color: var(--text-main); line-height: 1.3;">Click a sender's highlighted handle name within the timeline to pull their real-time profile.</div>
+                                </div>
+                            </div>
+
+                            <div class="escrow-pipeline-section" style="margin-top: 0.5rem;">
+                                <h2>📡 CORE MATCHING ANALYSIS</h2>
+                                <div id="radar-algorithmic-analysis" style="font-size: 0.7rem; color: var(--glow); font-family: monospace; background: rgba(63, 185, 80, 0.05); padding: 0.5rem; border: 1px dashed var(--border); border-radius: 4px;">
+                                    Initialize node intercept protocol to compute matrix matching ratios.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <footer class="app-footer-console">
+                <div class="terminal-header-tag">📊 DIAGNOSTIC NETWORK RUNTIME REAL-TIME INTERCEPT TRACE SYSTEM</div>
+                <div id="terminal-stream" class="terminal-log-scroller"></div>
+            </footer>
+        </div>
+    </div>
+
+    <div id="telemetry-buffer-shutter">
+        <div class="shutter-spinner-core"></div>
+        <div class="shutter-text-label">RE-ROUTING GRID PORT TUNNELS...</div>
+    </div>
+
+</body>
+</html>
