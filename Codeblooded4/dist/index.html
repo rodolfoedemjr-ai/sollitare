@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FragNet — Compete. Rise. Dominate.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+    <!-- ─── AUTH OVERLAY ─────────────────────────────────────────────────────── -->
+    <div id="auth-overlay" class="auth-overlay">
+        <div class="auth-bg-particles" id="particles"></div>
+        <div class="auth-card">
+            <div class="auth-logo">
+                <span class="logo-icon">⬡</span>
+                <span class="logo-text">FRAGNET</span>
+            </div>
+            <p class="auth-tagline">Compete. Rise. Dominate.</p>
+
+            <div id="auth-login" class="auth-form active">
+                <h2>SIGN IN</h2>
+                <input id="login-email" type="email" placeholder="Email address" />
+                <input id="login-pass" type="password" placeholder="Password" />
+                <button id="btn-login" type="button" class="btn-primary">LOG IN</button>
+                <button id="btn-google" type="button" class="btn-google">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" /> Continue with Google
+      </button>
+                <p class="auth-switch">No account? <a href="#" id="go-register">Register now</a></p>
+                <div id="login-error" class="auth-error"></div>
+            </div>
+
+            <div id="auth-register" class="auth-form">
+                <h2>CREATE ACCOUNT</h2>
+                <input id="reg-username" type="text" placeholder="Username (tag)" maxlength="20" />
+                <input id="reg-email" type="email" placeholder="Email address" />
+                <input id="reg-pass" type="password" placeholder="Password (min 6 chars)" />
+                <select id="reg-game">
+        <option value="">Favourite category…</option>
+        <option>Gaming</option>
+        <option>Programming</option>
+        <option>Music</option>
+        <option>Art &amp; Design</option>
+        <option>Sports &amp; Fitness</option>
+        <option>Education</option>
+        <option>Business</option>
+        <option>Lifestyle</option>
+        <option>Other</option>
+      </select>
+                <input id="reg-game-specify" type="text" placeholder="Specify (e.g. Valorant, Python)…" maxlength="30" style="display:none" />
+                <button id="btn-register" type="button" class="btn-primary">CREATE ACCOUNT</button>
+                <p class="auth-switch">Have an account? <a href="#" id="go-login">Sign in</a></p>
+                <div id="reg-error" class="auth-error"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── APP SHELL ─────────────────────────────────────────────────────────── -->
+    <div id="app" class="app hidden">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <span class="logo-icon">⬡</span>
+                <span class="logo-text">FRAGNET</span>
+            </div>
+
+            <div class="sidebar-user" id="sidebar-user">
+                <div class="avatar-wrap">
+                    <img id="sidebar-avatar" src="" alt="avatar" class="avatar-md" />
+                    <span class="rank-badge" id="sidebar-rank-badge">S1</span>
+                </div>
+                <div>
+                    <div class="sidebar-username" id="sidebar-username">— <span class="status-dot online" id="sidebar-status-dot" title="Online"></span></div>
+                    <div class="sidebar-elo" id="sidebar-elo">0 ELO</div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-page="feed">
+                    <span class="nav-icon">🏠</span> Feed
+                </a>
+                <a href="#" class="nav-item" data-page="leaderboard">
+                    <span class="nav-icon">🏆</span> Leaderboard
+                </a>
+                <a href="#" class="nav-item" data-page="matches">
+                    <span class="nav-icon">⚔️</span> Matches
+                </a>
+                <a href="#" class="nav-item" data-page="teams">
+                    <span class="nav-icon">🛡️</span> Teams
+                </a>
+                <a href="#" class="nav-item" data-page="chat">
+                    <span class="nav-icon">💬</span> Chat
+                </a>
+                <a href="#" class="nav-item" data-page="profile">
+                    <span class="nav-icon">👤</span> Profile
+                </a>
+            </nav>
+
+            <button id="btn-logout" class="btn-logout">Sign out</button>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+
+            <!-- ── FEED PAGE ── -->
+            <section id="page-feed" class="page active">
+                <div class="page-header">
+                    <h1>FEED</h1>
+                    <button class="btn-primary sm" id="btn-new-post">+ Post</button>
+                </div>
+
+                <!-- New post composer -->
+                <div class="post-composer" id="post-composer" style="display:none">
+                    <textarea id="post-content" placeholder="Share an update, project, win, or thought…" maxlength="500"></textarea>
+                    <div class="composer-row">
+                        <select id="post-game-tag">
+            <option value="">Tag a category…</option>
+            <option>Gaming</option>
+            <option>Programming</option>
+            <option>Music</option>
+            <option>Art &amp; Design</option>
+            <option>Sports &amp; Fitness</option>
+            <option>Education</option>
+            <option>Business</option>
+            <option>Lifestyle</option>
+            <option>Other</option>
+          </select>
+                        <input id="post-game-tag-specify" type="text" placeholder="Specify (e.g. Valorant, Python)…" maxlength="30" style="display:none" />
+                        <select id="post-type">
+            <option value="clip">🎬 Clip</option>
+            <option value="result">📊 Result</option>
+            <option value="update">📝 Update</option>
+            <option value="recruit">📢 Recruiting</option>
+            <option value="rant">💢 Rant</option>
+          </select>
+                        <button id="btn-post-submit" class="btn-primary sm">POST</button>
+                    </div>
+                </div>
+
+                <div id="feed-list" class="feed-list">
+                    <div class="feed-loading">Loading feed…</div>
+                </div>
+            </section>
+
+            <!-- ── LEADERBOARD PAGE ── -->
+            <section id="page-leaderboard" class="page">
+                <div class="page-header">
+                    <h1>LEADERBOARD</h1>
+                    <select id="lb-game-filter" class="filter-select">
+          <option value="all">All Categories</option>
+          <option>Gaming</option>
+          <option>Programming</option>
+          <option>Music</option>
+          <option>Art &amp; Design</option>
+          <option>Sports &amp; Fitness</option>
+          <option>Education</option>
+          <option>Business</option>
+          <option>Lifestyle</option>
+          <option>Other</option>
+        </select>
+                </div>
+                <div class="leaderboard-table" id="leaderboard-list">
+                    <div class="feed-loading">Loading leaderboard…</div>
+                </div>
+            </section>
+
+            <!-- ── MATCHES PAGE ── -->
+            <section id="page-matches" class="page">
+                <div class="page-header">
+                    <h1>MATCHES</h1>
+                    <button class="btn-primary sm" id="btn-log-match">Log Match</button>
+                </div>
+
+                <!-- Log match form -->
+                <div class="match-form" id="match-form" style="display:none">
+                    <h3>LOG A MATCH RESULT</h3>
+                    <div class="form-grid">
+                        <select id="m-game">
+            <option value="">Select game…</option>
+            <option>Valorant</option><option>CS2</option><option>League of Legends</option>
+            <option>Apex Legends</option><option>Overwatch 2</option><option>Rocket League</option>
+            <option>Fortnite</option><option>Dota 2</option>
+          </select>
+                        <select id="m-result">
+            <option value="win">Win ✅</option>
+            <option value="loss">Loss ❌</option>
+            <option value="draw">Draw 🤝</option>
+          </select>
+                        <input id="m-score" type="text" placeholder="Score (e.g. 13-7)" />
+                        <input id="m-map" type="text" placeholder="Map / Mode" />
+                        <input id="m-kda" type="text" placeholder="KDA (e.g. 24/5/8)" />
+                        <input id="m-rank" type="text" placeholder="Rank achieved (e.g. Diamond 2)" />
+                    </div>
+                    <textarea id="m-notes" placeholder="Notes about the match…" maxlength="300"></textarea>
+                    <div style="display:flex;gap:8px">
+                        <button id="btn-match-submit" class="btn-primary sm">SAVE RESULT</button>
+                        <button id="btn-match-cancel" class="btn-ghost sm">Cancel</button>
+                    </div>
+                </div>
+
+                <div id="matches-list" class="matches-list">
+                    <div class="feed-loading">Loading matches…</div>
+                </div>
+            </section>
+
+            <!-- ── TEAMS PAGE ── -->
+            <section id="page-teams" class="page">
+                <div class="page-header">
+                    <h1>TEAMS</h1>
+                    <button class="btn-primary sm" id="btn-create-team">+ Create Team</button>
+                </div>
+
+                <!-- Create team form -->
+                <div class="team-form" id="team-form" style="display:none">
+                    <h3>CREATE A TEAM</h3>
+                    <div class="form-grid">
+                        <input id="t-name" type="text" placeholder="Team name" maxlength="30" />
+                        <select id="t-game">
+            <option value="">Select game…</option>
+            <option>Valorant</option><option>CS2</option><option>League of Legends</option>
+            <option>Apex Legends</option><option>Overwatch 2</option>
+          </select>
+                        <input id="t-tag" type="text" placeholder="Team tag (e.g. [NVS])" maxlength="6" />
+                        <select id="t-region">
+            <option>PH</option><option>SEA</option><option>NA</option><option>EU</option><option>APAC</option>
+          </select>
+                    </div>
+                    <textarea id="t-desc" placeholder="Team description…" maxlength="200"></textarea>
+                    <div style="display:flex;gap:8px">
+                        <button id="btn-team-submit" class="btn-primary sm">CREATE</button>
+                        <button id="btn-team-cancel" class="btn-ghost sm">Cancel</button>
+                    </div>
+                </div>
+
+                <div id="teams-list" class="teams-list">
+                    <div class="feed-loading">Loading teams…</div>
+                </div>
+            </section>
+
+            <!-- ── CHAT PAGE ── -->
+            <section id="page-chat" class="page">
+                <div class="page-header">
+                    <h1>CHAT</h1>
+                </div>
+
+                <div class="chat-tabs">
+                    <button class="chat-tab active" data-chat-tab="global">🌐 Global</button>
+                    <button class="chat-tab" data-chat-tab="dms">✉️ Direct Messages</button>
+                    <button class="chat-tab" data-chat-tab="team">🛡️ Team Chat</button>
+                </div>
+
+                <!-- GLOBAL CHAT -->
+                <div class="chat-panel active" id="chat-panel-global">
+                    <div class="chat-window">
+                        <div class="chat-messages" id="global-chat-messages">
+                            <div class="feed-loading">Loading chat…</div>
+                        </div>
+                        <form class="chat-input-row" id="global-chat-form">
+                            <input type="text" id="global-chat-input" placeholder="Message everyone…" maxlength="500" autocomplete="off" />
+                            <button type="submit" class="btn-primary sm">Send</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- DMs -->
+                <div class="chat-panel" id="chat-panel-dms">
+                    <div class="dm-layout">
+                        <div class="dm-sidebar">
+                            <input type="text" id="dm-user-search" placeholder="Search players to message…" />
+                            <div id="dm-search-results" class="dm-search-results"></div>
+                            <div class="dm-thread-list" id="dm-thread-list">
+                                <div class="feed-loading">Loading conversations…</div>
+                            </div>
+                        </div>
+                        <div class="chat-window dm-window">
+                            <div class="dm-header" id="dm-header">
+                                <span class="dm-header-placeholder">Select a conversation or search for a player to start chatting.</span>
+                            </div>
+                            <div class="chat-messages" id="dm-chat-messages"></div>
+                            <form class="chat-input-row" id="dm-chat-form" style="display:none">
+                                <input type="text" id="dm-chat-input" placeholder="Type a message…" maxlength="500" autocomplete="off" />
+                                <button type="submit" class="btn-primary sm">Send</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TEAM CHAT -->
+                <div class="chat-panel" id="chat-panel-team">
+                    <div class="dm-layout">
+                        <div class="dm-sidebar">
+                            <div id="team-chat-list" class="dm-thread-list">
+                                <div class="feed-loading">Loading your teams…</div>
+                            </div>
+                        </div>
+                        <div class="chat-window dm-window">
+                            <div class="dm-header" id="team-chat-header">
+                                <span class="dm-header-placeholder">Select a team to open its chat.</span>
+                            </div>
+                            <div class="chat-messages" id="team-chat-messages"></div>
+                            <form class="chat-input-row" id="team-chat-form" style="display:none">
+                                <input type="text" id="team-chat-input" placeholder="Message your team…" maxlength="500" autocomplete="off" />
+                                <button type="submit" class="btn-primary sm">Send</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── PROFILE PAGE ── -->
+            <section id="page-profile" class="page">
+                <div class="profile-hero">
+                    <div class="profile-avatar-wrap">
+                        <img id="profile-avatar" src="" class="avatar-xl" alt="avatar" />
+                        <label class="avatar-upload-btn" title="Change avatar">
+            ✏️
+            <input type="file" id="avatar-upload" accept="image/*" style="display:none" />
+          </label>
+                    </div>
+                    <div class="profile-info">
+                        <h1 id="profile-username">—</h1>
+                        <div class="profile-rank-row">
+                            <span class="rank-chip" id="profile-rank-chip">UNRANKED</span>
+                            <span class="elo-display" id="profile-elo-display">0 ELO</span>
+                        </div>
+                        <p id="profile-fav-game" class="profile-fav-game"></p>
+                        <div class="profile-stats-row" id="profile-stats-row">
+                            <div class="stat-block">
+                                <div class="stat-n" id="stat-wins">0</div>
+                                <div class="stat-l">Wins</div>
+                            </div>
+                            <div class="stat-block">
+                                <div class="stat-n" id="stat-losses">0</div>
+                                <div class="stat-l">Losses</div>
+                            </div>
+                            <div class="stat-block">
+                                <div class="stat-n" id="stat-matches">0</div>
+                                <div class="stat-l">Matches</div>
+                            </div>
+                            <div class="stat-block">
+                                <div class="stat-n" id="stat-wr">—%</div>
+                                <div class="stat-l">Win Rate</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-body">
+                    <div class="profile-section">
+                        <h3>EDIT BIO</h3>
+                        <textarea id="profile-bio" placeholder="Tell the world who you are…" maxlength="200"></textarea>
+                        <div class="form-grid">
+                            <select id="profile-fav-game-select">
+              <option value="">Favourite category…</option>
+              <option>Gaming</option>
+              <option>Programming</option>
+              <option>Music</option>
+              <option>Art &amp; Design</option>
+              <option>Sports &amp; Fitness</option>
+              <option>Education</option>
+              <option>Business</option>
+              <option>Lifestyle</option>
+              <option>Other</option>
+            </select>
+                            <input id="profile-fav-game-specify" type="text" placeholder="Specify (e.g. Valorant, Python)…" maxlength="30" style="display:none" />
+                            <input id="profile-discord" type="text" placeholder="Discord tag" maxlength="50" />
+                        </div>
+                        <button id="btn-save-profile" class="btn-primary sm">SAVE PROFILE</button>
+                        <div id="profile-save-msg" class="save-msg"></div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- RIGHT PANEL -->
+        <aside class="right-panel">
+            <div class="panel-block">
+                <h3 class="panel-title">🔥 TOP ELO TODAY</h3>
+                <div id="top-elo-list"></div>
+            </div>
+            <div class="panel-block">
+                <h3 class="panel-title">🎮 ACTIVE PLAYERS</h3>
+                <div id="active-players-list"></div>
+            </div>
+            <div class="panel-block">
+                <h3 class="panel-title">🛡️ RECENT TEAMS</h3>
+                <div id="recent-teams-list"></div>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- USER ACTION MENU (Add Friend / Chat / Invite / Report / Block) -->
+    <div id="user-menu" class="user-menu hidden">
+        <div class="user-menu-header">
+            <img id="um-avatar" src="" alt="" />
+            <div>
+                <div class="um-username" id="um-username">—</div>
+                <div class="um-elo" id="um-elo"></div>
+            </div>
+        </div>
+        <div class="user-menu-items" id="user-menu-items"></div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="toast"></div>
+
+    <script type="module" src="app.js"></script>
+</body>
+
+</html>
