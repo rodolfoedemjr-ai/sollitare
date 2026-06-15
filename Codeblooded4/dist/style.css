@@ -1790,3 +1790,87 @@ img {
     padding: 10px;
     text-align: center;
 }
+
+
+/* ─── MEDIA ATTACHMENTS ────────────────────────────────────────────────── */
+
+.attach-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 8px 10px;
+    line-height: 1;
+}
+
+.media-preview {
+    position: relative;
+    margin: 8px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.media-preview img,
+.media-preview video {
+    max-width: 220px;
+    max-height: 180px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border2);
+    object-fit: cover;
+}
+
+.media-remove-btn {
+    background: var(--bg4);
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    border-radius: var(--radius);
+    font-size: 11px;
+    padding: 4px 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.media-remove-btn:hover {
+    color: var(--red);
+    border-color: var(--red);
+}
+
+.media-uploading {
+    font-size: 12px;
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 0;
+}
+
+/* Post / message media display */
+
+.card-media,
+.chat-msg-media {
+    margin-top: 8px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border2);
+    max-width: 100%;
+}
+
+.card-media img,
+.card-media video {
+    display: block;
+    width: 100%;
+    max-height: 480px;
+    object-fit: contain;
+    background: var(--bg1);
+}
+
+.chat-msg-media img,
+.chat-msg-media video {
+    display: block;
+    max-width: 240px;
+    max-height: 220px;
+    border-radius: var(--radius);
+    object-fit: cover;
+}

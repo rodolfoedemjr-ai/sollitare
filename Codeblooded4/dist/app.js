@@ -564,18 +564,110 @@ function updateSidebar() {
     document.getElementById('sidebar-rank-badge').style.background = rank.color;
 }
 
-// ─── FEED ─────────────────────────────────────────────────────────────────────
+// ─── MEDIA ATTACHMENTS (shared by posts + all chat surfaces) ─────────────────
+const MAX_MEDIA_BYTES = 25 * 1024 * 1024; // 25 MB
+
+// Tracks the currently-selected file for each attach context, keyed by a
+// short id (e.g. 'post', 'global', 'dm', 'team').
+const pendingMedia = new Map();
+
+function mediaType(file) {
+    if (file.type.startsWith('image/')) return 'image';
+    if (file.type.startsWith('video/')) return 'video';
+    return null;
+}
+
+// Renders a small preview (with a remove button) into `previewEl` for the
+// given file, and stores the file in `pendingMedia` under `key`.
+function showMediaPreview(key, file, previewEl, onRemove) {
+    const type = mediaType(file);
+    if (!type) { toast('Only images and videos can be attached.', 'error'); return; }
+    if (file.size > MAX_MEDIA_BYTES) { toast('File must be under 25 MB.', 'error'); return; }
+
+    pendingMedia.set(key, { file, type });
+
+    const url = URL.createObjectURL(file);
+    previewEl.innerHTML = '';
+    previewEl.style.display = 'flex';
+
+    const mediaEl = document.createElement(type === 'image' ? 'img' : 'video');
+    mediaEl.src = url;
+    if (type === 'video') mediaEl.controls = true;
+    previewEl.appendChild(mediaEl);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'media-remove-btn';
+    removeBtn.textContent = '✕ Remove';
+    removeBtn.addEventListener('click', () => {
+        pendingMedia.delete(key);
+        previewEl.innerHTML = '';
+        previewEl.style.display = 'none';
+        URL.revokeObjectURL(url);
+        if (onRemove) onRemove();
+    });
+    previewEl.appendChild(removeBtn);
+}
+
+// Uploads the pending file (if any) for `key` to `folder/<currentUid>/<timestamp>_<filename>`
+// and returns { mediaUrl, mediaType } or {} if nothing is attached.
+async function uploadPendingMedia(key, folder) {
+    const pending = pendingMedia.get(key);
+    if (!pending) return {};
+    const { file, type } = pending;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `${folder}/${currentUser.uid}/${Date.now()}_${safeName}`;
+    const ref = storageRef(storage, path);
+    await uploadBytes(ref, file, { contentType: file.type });
+    const url = await getDownloadURL(ref);
+    pendingMedia.delete(key);
+    return { mediaUrl: url, mediaType: type };
+}
+
+function clearMediaPreview(key, previewEl) {
+    pendingMedia.delete(key);
+    if (previewEl) {
+        previewEl.innerHTML = '';
+        previewEl.style.display = 'none';
+    }
+}
+
+// Renders the media HTML for a post or chat message, given { mediaUrl, mediaType }.
+function renderMediaHtml(data, containerClass) {
+    if (!data.mediaUrl) return '';
+    if (data.mediaType === 'video') {
+        return `<div class="${containerClass}"><video src="${escHtml(data.mediaUrl)}" controls></video></div>`;
+    }
+    return `<div class="${containerClass}"><img src="${escHtml(data.mediaUrl)}" alt="attachment" loading="lazy" /></div>`;
+}
+
+
 document.getElementById('btn-new-post').addEventListener('click', () => {
     const c = document.getElementById('post-composer');
     c.style.display = c.style.display === 'none' ? 'block' : 'none';
+});
+
+document.getElementById('post-media-input').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    showMediaPreview('post', file, document.getElementById('post-media-preview'));
+    e.target.value = '';
 });
 
 document.getElementById('btn-post-submit').addEventListener('click', async() => {
     const content = document.getElementById('post-content').value.trim();
     const gameTag = combineCategory('post-game-tag', 'post-game-tag-specify');
     const postType = document.getElementById('post-type').value;
-    if (!content) return toast('Write something first.', 'error');
+    const hasMedia = pendingMedia.has('post');
+    if (!content && !hasMedia) return toast('Write something or attach media first.', 'error');
+    const submitBtn = document.getElementById('btn-post-submit');
+    submitBtn.disabled = true;
     try {
+        let media = {};
+        if (hasMedia) {
+            submitBtn.textContent = 'UPLOADING…';
+            media = await uploadPendingMedia('post', 'posts');
+        }
         await addDoc(collection(db, 'posts'), {
             uid: currentUser.uid,
             username: currentProfile.username,
@@ -585,6 +677,7 @@ document.getElementById('btn-post-submit').addEventListener('click', async() => 
             postType,
             likes: [],
             comments: 0,
+            ...media,
             createdAt: serverTimestamp()
         });
         document.getElementById('post-content').value = '';
@@ -592,10 +685,14 @@ document.getElementById('btn-post-submit').addEventListener('click', async() => 
         document.getElementById('post-game-tag-specify').value = '';
         document.getElementById('post-game-tag-specify').style.display = 'none';
         document.getElementById('post-composer').style.display = 'none';
+        clearMediaPreview('post', document.getElementById('post-media-preview'));
         toast('Posted! 🔥', 'success');
         loadFeed();
     } catch (e) {
         toast('Failed to post: ' + e.message, 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'POST';
     }
 });
 
@@ -640,6 +737,7 @@ function buildPostCard(id, data) {
       </div>
     </div>
     <div class="card-body">${escHtml(data.content)}</div>
+    ${renderMediaHtml(data, 'card-media')}
     <div class="card-actions">
       <button class="card-action-btn like-btn ${liked ? 'liked' : ''}" data-id="${id}">
         ${liked ? '❤️' : '🤍'} ${(data.likes || []).length}
@@ -1185,7 +1283,8 @@ function renderChatMessage(data, container) {
         ${userChip(data.uid, data.username, userData)}
         <span class="chat-msg-time">${formatChatTime(data.createdAt)}</span>
       </div>
-      <div class="chat-msg-text">${escHtml(data.text)}</div>
+      ${data.text ? `<div class="chat-msg-text">${escHtml(data.text)}</div>` : ''}
+      ${renderMediaHtml(data, 'chat-msg-media')}
     </div>`;
   container.appendChild(row);
 }
@@ -1194,15 +1293,16 @@ function scrollToBottom(el) {
   el.scrollTop = el.scrollHeight;
 }
 
-async function sendChatMessage(collectionPath, text) {
+async function sendChatMessage(collectionPath, text, media = {}) {
   const trimmed = text.trim();
-  if (!trimmed) return;
+  if (!trimmed && !media.mediaUrl) return;
   if (!currentUser || !currentProfile) return toast('You must be signed in to chat.', 'error');
   await addDoc(collection(db, ...collectionPath), {
     uid: currentUser.uid,
     username: currentProfile.username,
     photoURL: currentProfile.photoURL || '',
     text: trimmed,
+    ...media,
     createdAt: serverTimestamp()
   });
 }
@@ -1262,14 +1362,32 @@ function initGlobalChat() {
 
   if (!form.dataset.wired) {
     form.dataset.wired = '1';
+
+    document.getElementById('global-chat-media-input').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      showMediaPreview('global', file, document.getElementById('global-chat-media-preview'));
+      e.target.value = '';
+    });
+
     form.addEventListener('submit', async e => {
       e.preventDefault();
       const text = input.value;
+      const hasMedia = pendingMedia.has('global');
       input.value = '';
+      const sendBtn = form.querySelector('button[type="submit"]');
       try {
-        await sendChatMessage(['globalChat'], text);
+        let media = {};
+        if (hasMedia) {
+          sendBtn.disabled = true;
+          media = await uploadPendingMedia('global', 'chatMedia/global');
+          clearMediaPreview('global', document.getElementById('global-chat-media-preview'));
+        }
+        await sendChatMessage(['globalChat'], text, media);
       } catch (err) {
         toast('Failed to send: ' + err.message, 'error');
+      } finally {
+        sendBtn.disabled = false;
       }
     });
   }
@@ -1460,21 +1578,38 @@ function wireDmForm() {
   if (form.dataset.wired) return;
   form.dataset.wired = '1';
 
+  document.getElementById('dm-chat-media-input').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    showMediaPreview('dm', file, document.getElementById('dm-chat-media-preview'));
+    e.target.value = '';
+  });
+
   form.addEventListener('submit', async e => {
     e.preventDefault();
     if (!activeDmThreadId) return;
     const text = input.value.trim();
-    if (!text) return;
+    const hasMedia = pendingMedia.has('dm');
+    if (!text && !hasMedia) return;
     input.value = '';
+    const sendBtn = form.querySelector('button[type="submit"]');
     try {
-      await sendChatMessage(['dmThreads', activeDmThreadId, 'messages'], text);
+      let media = {};
+      if (hasMedia) {
+        sendBtn.disabled = true;
+        media = await uploadPendingMedia('dm', `chatMedia/dm/${activeDmThreadId}`);
+        clearMediaPreview('dm', document.getElementById('dm-chat-media-preview'));
+      }
+      await sendChatMessage(['dmThreads', activeDmThreadId, 'messages'], text, media);
       await updateDoc(doc(db, 'dmThreads', activeDmThreadId), {
-        lastMessage: text,
+        lastMessage: text || (media.mediaType === 'video' ? '🎬 Video' : '🖼️ Image'),
         lastMessageAt: serverTimestamp(),
         lastSenderId: currentUser.uid
       });
     } catch (err) {
       toast('Failed to send: ' + err.message, 'error');
+    } finally {
+      sendBtn.disabled = false;
     }
   });
 }
@@ -1554,16 +1689,33 @@ function wireTeamChatForm() {
   if (form.dataset.wired) return;
   form.dataset.wired = '1';
 
+  document.getElementById('team-chat-media-input').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    showMediaPreview('team', file, document.getElementById('team-chat-media-preview'));
+    e.target.value = '';
+  });
+
   form.addEventListener('submit', async e => {
     e.preventDefault();
     if (!activeTeamId) return;
     const text = input.value.trim();
-    if (!text) return;
+    const hasMedia = pendingMedia.has('team');
+    if (!text && !hasMedia) return;
     input.value = '';
+    const sendBtn = form.querySelector('button[type="submit"]');
     try {
-      await sendChatMessage(['teams', activeTeamId, 'messages'], text);
+      let media = {};
+      if (hasMedia) {
+        sendBtn.disabled = true;
+        media = await uploadPendingMedia('team', `chatMedia/team/${activeTeamId}`);
+        clearMediaPreview('team', document.getElementById('team-chat-media-preview'));
+      }
+      await sendChatMessage(['teams', activeTeamId, 'messages'], text, media);
     } catch (err) {
       toast('Failed to send: ' + err.message, 'error');
+    } finally {
+      sendBtn.disabled = false;
     }
   });
 }
