@@ -94,6 +94,10 @@
                 <a href="#" class="nav-item" data-page="teams">
                     <span class="nav-icon">🛡️</span> Teams
                 </a>
+                <a href="#" class="nav-item" data-page="messages">
+                    <span class="nav-icon">💬</span> Messages
+                    <span class="nav-badge hidden" id="msg-badge"></span>
+                </a>
                 <a href="#" class="nav-item" data-page="profile">
                     <span class="nav-icon">👤</span> Profile
                 </a>
@@ -317,6 +321,40 @@
                         </div>
                         <button id="btn-save-profile" class="btn-primary sm">SAVE PROFILE</button>
                         <div id="profile-save-msg" class="save-msg"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── MESSAGES PAGE ── -->
+            <section id="page-messages" class="page">
+                <div class="page-header">
+                    <h1>MESSAGES</h1>
+                </div>
+                <div class="dm-shell">
+                    <!-- Conversation list -->
+                    <div class="dm-list-panel" id="dm-list-panel">
+                        <div class="dm-search-wrap">
+                            <input id="dm-search" type="text" placeholder="Search or start a new chat…" />
+                        </div>
+                        <div id="dm-conversations" class="dm-conversations">
+                            <div class="feed-loading">Loading conversations…</div>
+                        </div>
+                    </div>
+                    <!-- Chat window -->
+                    <div class="dm-chat-panel" id="dm-chat-panel">
+                        <div class="dm-empty-state" id="dm-empty-state">
+                            <div class="dm-empty-icon">💬</div>
+                            <div class="dm-empty-text">Select a conversation or start a new chat</div>
+                        </div>
+                        <!-- Populated by JS -->
+                        <div id="dm-chat-inner" class="dm-chat-inner" style="display:none">
+                            <div class="dm-chat-header" id="dm-chat-header"></div>
+                            <div class="dm-messages-list" id="dm-messages-list"></div>
+                            <div class="dm-composer">
+                                <input type="text" id="dm-input" placeholder="Write a message…" maxlength="1000" />
+                                <button id="dm-send-btn" class="btn-primary sm">Send</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
