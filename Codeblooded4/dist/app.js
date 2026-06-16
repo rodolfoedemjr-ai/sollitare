@@ -1604,6 +1604,21 @@ async function searchUsersForDM(query_str) {
 }
 
 // ─── RIGHT PANEL ─────────────────────────────────────────────────────────────
+function wirePanelUserTriggers(container) {
+    if (!container) return;
+    container.querySelectorAll('.user-trigger').forEach(row => {
+        if (row.dataset.uid === currentUser?.uid) {
+            // It's you — no popup, just visually mark it instead of a dead click target
+            row.classList.add('panel-user-self');
+            return;
+        }
+        row.addEventListener('click', e => {
+            e.stopPropagation();
+            openUserPopup(row.dataset.uid, row.dataset.username, row);
+        });
+    });
+}
+
 async function loadRightPanel() {
   // Top ELO
   try {
@@ -1615,7 +1630,9 @@ async function loadRightPanel() {
       const data = d.data();
       const rank = getRank(data.elo || 1000);
       const row = document.createElement('div');
-      row.className = 'panel-user';
+      row.className = 'panel-user user-trigger';
+      row.dataset.uid = d.id;
+      row.dataset.username = data.username || 'Player';
       row.innerHTML = `
         <img src="${avatarUrl(data)}" />
         <div class="panel-user-info">
@@ -1625,6 +1642,7 @@ async function loadRightPanel() {
         <div class="panel-elo">${data.elo || 1000}</div>`;
       topEl.appendChild(row);
     });
+    wirePanelUserTriggers(topEl);
   } catch(_) {}
 
   // Active players (recently registered or updated)
@@ -1636,7 +1654,9 @@ async function loadRightPanel() {
     snap.forEach(d => {
       const data = d.data();
       const row = document.createElement('div');
-      row.className = 'panel-user';
+      row.className = 'panel-user user-trigger';
+      row.dataset.uid = d.id;
+      row.dataset.username = data.username || 'Player';
       row.innerHTML = `
         <img src="${avatarUrl(data)}" />
         <div class="panel-user-info">
@@ -1646,6 +1666,7 @@ async function loadRightPanel() {
         <span style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0"></span>`;
       el.appendChild(row);
     });
+    wirePanelUserTriggers(el);
   } catch(_) {}
 
   // Recent teams

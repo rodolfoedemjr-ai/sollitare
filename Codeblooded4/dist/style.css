@@ -1596,6 +1596,26 @@ img {
     border-bottom: 1px solid var(--border);
 }
 
+.panel-user.user-trigger {
+    cursor: pointer;
+    border-radius: var(--radius);
+    margin: 0 -8px;
+    padding: 8px 8px;
+    transition: background .15s;
+}
+
+.panel-user.user-trigger:hover {
+    background: rgba(0,229,255,.06);
+}
+
+.panel-user.panel-user-self {
+    cursor: default;
+}
+
+.panel-user.panel-user-self:hover {
+    background: none;
+}
+
 .panel-user:last-child {
     border-bottom: none;
 }
