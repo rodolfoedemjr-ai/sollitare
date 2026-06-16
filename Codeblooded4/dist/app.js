@@ -33,12 +33,8 @@ import {
     arrayUnion,
     arrayRemove
 } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
-import {
-    getStorage,
-    ref as storageRef,
-    uploadBytes,
-    getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.11.0/firebase-storage.js";
+// ImageBB is used for image uploads (free, no Firebase Storage needed)
+const IMGBB_API_KEY = '74332c63a1f445fae96b53f2e5512a0b';
 
 // ─── ⚠️  REPLACE WITH YOUR FIREBASE CONFIG ──────────────────────────────────
 const firebaseConfig = {
@@ -54,7 +50,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app);
 const gProvider = new GoogleAuthProvider();
 
 // ─── RANK SYSTEM ─────────────────────────────────────────────────────────────
@@ -892,7 +887,7 @@ document.getElementById('btn-save-profile').addEventListener('click', async () =
   }
 });
 
-// Avatar upload
+// Avatar upload via ImageBB
 document.getElementById('avatar-upload').addEventListener('change', async e => {
   const file = e.target.files[0];
   if (!file) return;
@@ -900,9 +895,29 @@ document.getElementById('avatar-upload').addEventListener('change', async e => {
   if (!currentUser) return toast('You must be signed in to upload an avatar.', 'error');
   toast('Uploading avatar…');
   try {
-    const ref = storageRef(storage, `avatars/${currentUser.uid}`);
-    await uploadBytes(ref, file, { contentType: file.type });
-    const url = await getDownloadURL(ref);
+    // Convert file to base64
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    // Upload to ImageBB
+    const formData = new FormData();
+    formData.append('key', IMGBB_API_KEY);
+    formData.append('image', base64);
+    formData.append('name', `avatar_${currentUser.uid}`);
+
+    const res = await fetch('https://api.imgbb.com/1/upload', {
+      method: 'POST',
+      body: formData
+    });
+    const json = await res.json();
+
+    if (!json.success) throw new Error(json.error?.message || 'ImageBB upload failed');
+
+    const url = json.data.url;
     await updateProfile(currentUser, { photoURL: url });
     await updateDoc(doc(db, 'users', currentUser.uid), { photoURL: url });
     await refreshCurrentProfile();
@@ -911,8 +926,7 @@ document.getElementById('avatar-upload').addEventListener('change', async e => {
     toast('Avatar updated! 🎉', 'success');
   } catch(e) {
     console.error('Avatar upload failed', e);
-    const code = e.code || e.message || 'unknown error';
-    toast(`Upload failed (${code}). Check Storage rules in Firebase Console.`, 'error');
+    toast(`Upload failed: ${e.message}`, 'error');
   } finally {
     e.target.value = '';
   }
