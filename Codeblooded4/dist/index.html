@@ -115,6 +115,23 @@
                 <!-- New post composer -->
                 <div class="post-composer" id="post-composer" style="display:none">
                     <textarea id="post-content" placeholder="Share an update, project, win, or thought…" maxlength="500"></textarea>
+
+                    <!-- Media preview area -->
+                    <div id="post-media-preview" class="post-media-preview" style="display:none"></div>
+
+                    <!-- Media upload toolbar -->
+                    <div class="composer-media-bar">
+                        <label class="media-upload-btn" title="Attach image">
+                            <span>🖼️</span> Image
+                            <input type="file" id="post-image-input" accept="image/*" style="display:none" />
+                        </label>
+                        <label class="media-upload-btn" title="Attach video">
+                            <span>🎬</span> Video
+                            <input type="file" id="post-video-input" accept="video/*" style="display:none" />
+                        </label>
+                        <div id="post-media-status" class="post-media-status"></div>
+                    </div>
+
                     <div class="composer-row">
                         <select id="post-game-tag">
             <option value="">Tag a category…</option>

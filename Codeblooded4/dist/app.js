@@ -416,12 +416,124 @@ document.getElementById('btn-new-post').addEventListener('click', () => {
     c.style.display = c.style.display === 'none' ? 'block' : 'none';
 });
 
+// ─── MEDIA UPLOAD STATE ───────────────────────────────────────────────────────
+let pendingMediaUrl  = '';   // uploaded URL (imgbb)
+let pendingMediaType = '';   // 'image' | 'video'
+let pendingVideoFile = null; // raw File for video (uploaded on post)
+
+async function uploadToImgBB(file) {
+    const base64 = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload  = () => resolve(r.result.split(',')[1]);
+        r.onerror = reject;
+        r.readAsDataURL(file);
+    });
+    const fd = new FormData();
+    fd.append('key', IMGBB_API_KEY);
+    fd.append('image', base64);
+    const res  = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: fd });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error?.message || 'Upload failed');
+    return json.data.url;
+}
+
+function setMediaStatus(msg, isError = false) {
+    const el = document.getElementById('post-media-status');
+    if (el) { el.textContent = msg; el.style.color = isError ? 'var(--red)' : 'var(--text3)'; }
+}
+
+function updateMediaPreview() {
+    const preview = document.getElementById('post-media-preview');
+    if (!preview) return;
+    if (!pendingMediaUrl) { preview.style.display = 'none'; preview.innerHTML = ''; return; }
+    preview.style.display = 'block';
+    if (pendingMediaType === 'image') {
+        preview.innerHTML = `
+            <div class="media-preview-wrap">
+                <img src="${pendingMediaUrl}" class="composer-preview-img" alt="preview" />
+                <button class="media-remove-btn" id="btn-remove-media" title="Remove">✕</button>
+            </div>`;
+    } else {
+        preview.innerHTML = `
+            <div class="media-preview-wrap">
+                <video src="${pendingMediaUrl}" class="composer-preview-video" controls muted></video>
+                <button class="media-remove-btn" id="btn-remove-media" title="Remove">✕</button>
+            </div>`;
+    }
+    document.getElementById('btn-remove-media')?.addEventListener('click', () => {
+        pendingMediaUrl  = '';
+        pendingMediaType = '';
+        pendingVideoFile = null;
+        updateMediaPreview();
+        setMediaStatus('');
+        document.getElementById('post-image-input').value = '';
+        document.getElementById('post-video-input').value = '';
+    });
+}
+
+// Image picker
+document.getElementById('post-image-input')?.addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) return toast('Image must be under 5 MB.', 'error');
+    setMediaStatus('Uploading image…');
+    try {
+        pendingMediaUrl  = await uploadToImgBB(file);
+        pendingMediaType = 'image';
+        pendingVideoFile = null;
+        setMediaStatus('Image ready ✓');
+        updateMediaPreview();
+    } catch(err) {
+        setMediaStatus('Upload failed: ' + err.message, true);
+    } finally {
+        e.target.value = '';
+    }
+});
+
+// Video picker — store file, create local preview; upload on post
+document.getElementById('post-video-input')?.addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) return toast('Video must be under 50 MB.', 'error');
+    pendingVideoFile = file;
+    pendingMediaType = 'video';
+    pendingMediaUrl  = URL.createObjectURL(file); // local preview
+    setMediaStatus(`Video selected: ${file.name}`);
+    updateMediaPreview();
+    e.target.value = '';
+});
+
 document.getElementById('btn-post-submit').addEventListener('click', async() => {
     const content = document.getElementById('post-content').value.trim();
     const gameTag = combineCategory('post-game-tag', 'post-game-tag-specify');
     const postType = document.getElementById('post-type').value;
-    if (!content) return toast('Write something first.', 'error');
+    if (!content && !pendingMediaUrl) return toast('Write something or attach media first.', 'error');
+
+    const btn = document.getElementById('btn-post-submit');
+    btn.disabled = true;
+    btn.textContent = 'Posting…';
+
     try {
+        let mediaUrl  = '';
+        let mediaType = '';
+
+        // If there's a pending video file, upload it now
+        if (pendingVideoFile) {
+            setMediaStatus('Uploading video…');
+            try {
+                mediaUrl  = await uploadToImgBB(pendingVideoFile);
+                mediaType = 'video';
+            } catch(err) {
+                toast('Video upload failed: ' + err.message, 'error');
+                btn.disabled = false;
+                btn.textContent = 'POST';
+                return;
+            }
+        } else if (pendingMediaUrl && pendingMediaType === 'image') {
+            mediaUrl  = pendingMediaUrl;
+            mediaType = 'image';
+        }
+
         await addDoc(collection(db, 'posts'), {
             uid: currentUser.uid,
             username: currentProfile.username,
@@ -429,19 +541,32 @@ document.getElementById('btn-post-submit').addEventListener('click', async() => 
             content,
             gameTag,
             postType,
+            mediaUrl,
+            mediaType,
             likes: [],
             comments: 0,
             createdAt: serverTimestamp()
         });
+
+        // Reset composer
         document.getElementById('post-content').value = '';
         document.getElementById('post-game-tag').value = '';
         document.getElementById('post-game-tag-specify').value = '';
         document.getElementById('post-game-tag-specify').style.display = 'none';
         document.getElementById('post-composer').style.display = 'none';
+        pendingMediaUrl  = '';
+        pendingMediaType = '';
+        pendingVideoFile = null;
+        updateMediaPreview();
+        setMediaStatus('');
+
         toast('Posted! 🔥', 'success');
         loadFeed();
     } catch (e) {
         toast('Failed to post: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'POST';
     }
 });
 
@@ -460,13 +585,21 @@ async function loadFeed() {
 }
 
 function buildPostCard(id, data) {
-    const rank = getRank(0); // we'd need to fetch per user; keep lean here
     const liked = (data.likes || []).includes(currentUser ?.uid);
+
+    // Build media HTML
+    let mediaHtml = '';
+    if (data.mediaUrl && data.mediaType === 'image') {
+        mediaHtml = `<div class="card-media"><img src="${escHtml(data.mediaUrl)}" class="card-media-img" alt="post image" loading="lazy" /></div>`;
+    } else if (data.mediaUrl && data.mediaType === 'video') {
+        mediaHtml = `<div class="card-media"><video src="${escHtml(data.mediaUrl)}" class="card-media-video" controls muted playsinline></video></div>`;
+    }
+
     const card = document.createElement('div');
     card.className = 'feed-card';
     card.innerHTML = `
     <div class="card-header">
-      <img class="avatar-sm" src="${avatarUrl(data)}" alt="${data.username}" />
+      <img class="avatar-sm" src="${avatarUrl(data)}" alt="${escHtml(data.username)}" />
       <div class="card-meta">
         <div class="card-username">${escHtml(data.username)}</div>
         <div class="card-timestamp">${timeAgo(data.createdAt)}</div>
@@ -476,13 +609,15 @@ function buildPostCard(id, data) {
         <span class="tag-pill tag-${data.postType}">${postTypeLabel(data.postType)}</span>
       </div>
     </div>
-    <div class="card-body">${escHtml(data.content)}</div>
+    ${data.content ? `<div class="card-body">${escHtml(data.content)}</div>` : ''}
+    ${mediaHtml}
     <div class="card-actions">
       <button class="card-action-btn like-btn ${liked ? 'liked' : ''}" data-id="${id}">
         ${liked ? '❤️' : '🤍'} ${(data.likes || []).length}
       </button>
       <button class="card-action-btn comment-toggle-btn" data-id="${id}">💬 <span class="comment-count">${data.comments || 0}</span></button>
-      ${data.uid === currentUser?.uid ? `<button class="card-action-btn delete-post-btn" data-id="${id}" style="margin-left:auto;color:var(--red)">🗑️ Delete</button>` : ''}
+      <button class="card-action-btn share-btn" data-id="${id}" title="Share post">🔗 Share</button>
+      ${data.uid === currentUser?.uid ? `<button class="card-action-btn delete-post-btn" data-id="${id}" style="margin-left:auto;color:var(--red)">🗑️</button>` : ''}
     </div>
     <div class="comments-section" id="comments-${id}" style="display:none">
       <div class="comments-list" id="comments-list-${id}"></div>
@@ -496,10 +631,48 @@ function buildPostCard(id, data) {
   card.querySelector('.delete-post-btn')?.addEventListener('click', () => deletePost(id));
   card.querySelector('.comment-toggle-btn')?.addEventListener('click', () => toggleComments(id));
   card.querySelector('.comment-submit-btn')?.addEventListener('click', () => submitComment(id));
+  card.querySelector('.share-btn')?.addEventListener('click', () => sharePost(id, data));
   card.querySelector('.comment-input')?.addEventListener('keydown', e => {
     if (e.key === 'Enter') submitComment(id);
   });
+  // Expand image on tap
+  card.querySelector('.card-media-img')?.addEventListener('click', () => openMediaLightbox(data.mediaUrl, 'image'));
   return card;
+}
+
+// ─── SHARE POST ──────────────────────────────────────────────────────────────
+async function sharePost(id, data) {
+    const shareText = `${data.username} on FragNet: "${(data.content || '').slice(0, 100)}${data.content?.length > 100 ? '…' : ''}"`;
+    const shareUrl  = `${location.origin}${location.pathname}?post=${id}`;
+    if (navigator.share) {
+        try {
+            await navigator.share({ title: 'FragNet Post', text: shareText, url: shareUrl });
+        } catch (e) {
+            if (e.name !== 'AbortError') copyToClipboard(shareUrl);
+        }
+    } else {
+        copyToClipboard(shareUrl);
+    }
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text)
+        .then(() => toast('Link copied! 🔗', 'success'))
+        .catch(() => toast('Could not copy link.', 'error'));
+}
+
+// ─── MEDIA LIGHTBOX ──────────────────────────────────────────────────────────
+function openMediaLightbox(url, type) {
+    const existing = document.getElementById('media-lightbox');
+    if (existing) existing.remove();
+    const lb = document.createElement('div');
+    lb.id = 'media-lightbox';
+    lb.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;cursor:zoom-out';
+    lb.innerHTML = type === 'image'
+        ? `<img src="${url}" style="max-width:100%;max-height:90vh;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.8)" />`
+        : `<video src="${url}" controls autoplay style="max-width:100%;max-height:90vh;border-radius:8px"></video>`;
+    lb.addEventListener('click', () => lb.remove());
+    document.body.appendChild(lb);
 }
 
 // ─── COMMENTS ─────────────────────────────────────────────────────────────────
