@@ -98,6 +98,9 @@
                     <span class="nav-icon">💬</span> Messages
                     <span class="nav-badge hidden" id="msg-badge"></span>
                 </a>
+                <a href="#" class="nav-item" data-page="global-chat">
+                    <span class="nav-icon">📡</span> Global Chat
+                </a>
                 <a href="#" class="nav-item" data-page="profile">
                     <span class="nav-icon">👤</span> Profile
                 </a>
@@ -355,6 +358,22 @@
                                 <button id="dm-send-btn" class="btn-primary sm">Send</button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── GLOBAL CHAT PAGE ── -->
+            <section id="page-global-chat" class="page">
+                <div class="page-header">
+                    <h1>GLOBAL CHAT</h1>
+                </div>
+                <div class="gchat-shell">
+                    <div id="gchat-messages" class="gchat-messages">
+                        <div class="feed-loading">Loading…</div>
+                    </div>
+                    <div class="gchat-composer">
+                        <input type="text" id="gchat-input" placeholder="Say something to everyone…" maxlength="500" />
+                        <button id="gchat-send-btn" class="btn-primary sm">Send</button>
                     </div>
                 </div>
             </section>

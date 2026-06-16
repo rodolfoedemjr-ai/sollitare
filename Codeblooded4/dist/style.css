@@ -1007,6 +1007,84 @@ img {
     display: block !important;
 }
 
+/* ─── GLOBAL CHAT ─────────────────────────────────────────────────────────── */
+.gchat-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    min-height: 520px;
+}
+
+.gchat-messages {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    max-height: calc(100vh - 280px);
+    padding-right: 4px;
+}
+
+.gchat-composer {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+}
+
+.gchat-composer input {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border2);
+    background: var(--bg3);
+    color: var(--text);
+}
+
+.gchat-bubble-wrap {
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.gchat-bubble-wrap.mine {
+    flex-direction: row-reverse;
+}
+
+.gchat-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--border2);
+    flex-shrink: 0;
+}
+
+.gchat-bubble-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 4px;
+}
+
+.gchat-bubble {
+    max-width: 70%;
+}
+
+.gchat-delete-btn {
+    cursor: pointer;
+    margin-left: 6px;
+    opacity: .7;
+}
+
+.gchat-delete-btn:hover {
+    opacity: 1;
+}
+
 .share-btn { color: var(--text3); }
 .share-btn:hover { color: var(--accent2); }
 
@@ -1594,26 +1672,6 @@ img {
     gap: 10px;
     padding: 8px 0;
     border-bottom: 1px solid var(--border);
-}
-
-.panel-user.user-trigger {
-    cursor: pointer;
-    border-radius: var(--radius);
-    margin: 0 -8px;
-    padding: 8px 8px;
-    transition: background .15s;
-}
-
-.panel-user.user-trigger:hover {
-    background: rgba(0,229,255,.06);
-}
-
-.panel-user.panel-user-self {
-    cursor: default;
-}
-
-.panel-user.panel-user-self:hover {
-    background: none;
 }
 
 .panel-user:last-child {

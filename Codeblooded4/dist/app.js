@@ -161,6 +161,7 @@ function showPage(id) {
     if (id === 'teams') loadTeams();
     if (id === 'profile') loadProfile();
     if (id === 'messages') loadDMPage();
+    if (id === 'global-chat') loadGlobalChat();
     if (id === 'leaderboard') loadRightPanel();
 }
 
@@ -1603,22 +1604,101 @@ async function searchUsersForDM(query_str) {
     } catch(e) { el.innerHTML = `<div class="feed-loading">Error: ${e.message}</div>`; }
 }
 
-// ─── RIGHT PANEL ─────────────────────────────────────────────────────────────
-function wirePanelUserTriggers(container) {
-    if (!container) return;
-    container.querySelectorAll('.user-trigger').forEach(row => {
-        if (row.dataset.uid === currentUser?.uid) {
-            // It's you — no popup, just visually mark it instead of a dead click target
-            row.classList.add('panel-user-self');
+// ─── GLOBAL CHAT ─────────────────────────────────────────────────────────────
+// Firestore shape:
+//   globalChat/{messageId}  { uid, username, photoURL, text, createdAt }
+// Rules: any signed-in user may read/create; create requires uid == auth.uid;
+// update is always denied; delete only allowed by the message's own author.
+
+let gchatUnsub = null;
+const GCHAT_MSG_LIMIT = 200;
+
+function loadGlobalChat() {
+    const list = document.getElementById('gchat-messages');
+    if (!list) return;
+    list.innerHTML = '<div class="feed-loading">Loading…</div>';
+
+    if (gchatUnsub) { gchatUnsub(); gchatUnsub = null; }
+
+    const q = query(
+        collection(db, 'globalChat'),
+        orderBy('createdAt', 'asc'),
+        limit(GCHAT_MSG_LIMIT)
+    );
+
+    gchatUnsub = onSnapshot(q, snap => {
+        const wasNearBottom = (list.scrollHeight - list.scrollTop - list.clientHeight) < 80;
+        list.innerHTML = '';
+        if (snap.empty) {
+            list.innerHTML = '<div class="dm-no-convs">No messages yet. Say hi to everyone!</div>';
             return;
         }
-        row.addEventListener('click', e => {
-            e.stopPropagation();
-            openUserPopup(row.dataset.uid, row.dataset.username, row);
-        });
-    });
+        snap.forEach(d => list.appendChild(buildGChatBubble(d.id, d.data())));
+        if (wasNearBottom || list.dataset.firstLoad !== 'done') {
+            list.scrollTop = list.scrollHeight;
+            list.dataset.firstLoad = 'done';
+        }
+    }, err => { list.innerHTML = `<div class="feed-loading">Error: ${err.message}</div>`; });
+
+    // Wire send button + Enter key (clone to avoid stacking duplicate listeners
+    // across repeated page visits, same pattern used for DM send button).
+    const sendBtn = document.getElementById('gchat-send-btn');
+    const input   = document.getElementById('gchat-input');
+    if (sendBtn) {
+        const newSend = sendBtn.cloneNode(true);
+        sendBtn.replaceWith(newSend);
+        newSend.addEventListener('click', sendGlobalChatMessage);
+    }
+    if (input) {
+        const newInput = input.cloneNode(true);
+        input.replaceWith(newInput);
+        newInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendGlobalChatMessage(); });
+    }
 }
 
+async function sendGlobalChatMessage() {
+    const input = document.getElementById('gchat-input');
+    const text  = input?.value.trim();
+    if (!text) return;
+    if (!currentUser || !currentProfile) return toast('You must be signed in to chat.', 'error');
+    input.value = '';
+
+    try {
+        await addDoc(collection(db, 'globalChat'), {
+            uid: currentUser.uid,
+            username: currentProfile.username || 'Player',
+            photoURL: currentProfile.photoURL || '',
+            text,
+            createdAt: serverTimestamp()
+        });
+    } catch(e) { toast('Could not send message: ' + e.message, 'error'); }
+}
+
+function buildGChatBubble(id, data) {
+    const isMine = data.uid === currentUser?.uid;
+    const wrap = document.createElement('div');
+    wrap.className = `dm-bubble-wrap gchat-bubble-wrap ${isMine ? 'mine' : 'theirs'}`;
+    wrap.dataset.id = id;
+    wrap.innerHTML = `
+        <img class="gchat-avatar" src="${data.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username || 'Player')}&background=1f2433&color=00e5ff&bold=true&size=60`}" />
+        <div class="dm-bubble ${isMine ? 'dm-bubble-mine' : 'dm-bubble-theirs'} gchat-bubble">
+            ${isMine ? '' : `<div class="gchat-bubble-name">${escHtml(data.username || 'Player')}</div>`}
+            <div class="dm-bubble-text">${escHtml(data.text)}</div>
+            <div class="dm-bubble-ts">${timeAgo(data.createdAt)}${isMine ? ' <span class="gchat-delete-btn" title="Delete">🗑️</span>' : ''}</div>
+        </div>`;
+    if (isMine) {
+        wrap.querySelector('.gchat-delete-btn')?.addEventListener('click', () => deleteGlobalChatMessage(id));
+    }
+    return wrap;
+}
+
+async function deleteGlobalChatMessage(id) {
+    try {
+        await deleteDoc(doc(db, 'globalChat', id));
+    } catch(e) { toast('Could not delete message: ' + e.message, 'error'); }
+}
+
+// ─── RIGHT PANEL ─────────────────────────────────────────────────────────────
 async function loadRightPanel() {
   // Top ELO
   try {
@@ -1630,9 +1710,7 @@ async function loadRightPanel() {
       const data = d.data();
       const rank = getRank(data.elo || 1000);
       const row = document.createElement('div');
-      row.className = 'panel-user user-trigger';
-      row.dataset.uid = d.id;
-      row.dataset.username = data.username || 'Player';
+      row.className = 'panel-user';
       row.innerHTML = `
         <img src="${avatarUrl(data)}" />
         <div class="panel-user-info">
@@ -1642,7 +1720,6 @@ async function loadRightPanel() {
         <div class="panel-elo">${data.elo || 1000}</div>`;
       topEl.appendChild(row);
     });
-    wirePanelUserTriggers(topEl);
   } catch(_) {}
 
   // Active players (recently registered or updated)
@@ -1654,9 +1731,7 @@ async function loadRightPanel() {
     snap.forEach(d => {
       const data = d.data();
       const row = document.createElement('div');
-      row.className = 'panel-user user-trigger';
-      row.dataset.uid = d.id;
-      row.dataset.username = data.username || 'Player';
+      row.className = 'panel-user';
       row.innerHTML = `
         <img src="${avatarUrl(data)}" />
         <div class="panel-user-info">
@@ -1666,7 +1741,6 @@ async function loadRightPanel() {
         <span style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0"></span>`;
       el.appendChild(row);
     });
-    wirePanelUserTriggers(el);
   } catch(_) {}
 
   // Recent teams

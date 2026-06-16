@@ -720,3 +720,86 @@ img { display: block; }
 ::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ─── GLOBAL CHAT ─────────────────────────────────────────────────────────── */
+.gchat-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 12px;
+}
+
+.gchat-messages {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    max-height: calc(100vh - var(--nav-h) - 230px);
+    max-height: calc(100dvh - var(--nav-h) - 230px);
+    padding-right: 2px;
+}
+
+.gchat-composer {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+}
+
+.gchat-composer input {
+    flex: 1;
+}
+
+.dm-bubble-wrap { display: flex; }
+.dm-bubble-wrap.mine { justify-content: flex-end; }
+.dm-bubble {
+    max-width: 82%;
+    padding: 10px 12px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+}
+.dm-bubble-mine {
+    background: var(--accent2);
+    color: #080c12;
+    border-bottom-right-radius: 4px;
+}
+.dm-bubble-theirs {
+    background: var(--bg3);
+    color: var(--text);
+    border-bottom-left-radius: 4px;
+}
+.dm-bubble-text { white-space: pre-wrap; word-break: break-word; font-size: 13px; }
+.dm-bubble-ts { margin-top: 5px; font-size: 10px; color: var(--text3); text-align: right; }
+
+.gchat-bubble-wrap {
+    align-items: flex-end;
+    gap: 8px;
+}
+.gchat-bubble-wrap.mine { flex-direction: row-reverse; }
+
+.gchat-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--border2);
+    flex-shrink: 0;
+}
+
+.gchat-bubble-name {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 3px;
+}
+
+.gchat-bubble { max-width: 75%; }
+
+.gchat-delete-btn { cursor: pointer; margin-left: 6px; opacity: .7; }
+
+.dm-no-convs { text-align: center; color: var(--text3); padding: 24px; font-size: 13px; }
