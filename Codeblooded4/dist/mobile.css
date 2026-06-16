@@ -432,6 +432,79 @@ img { display: block; }
 .share-btn { color: var(--text3); }
 .share-btn:active { color: var(--accent); }
 
+/* ── Clickable username/avatar triggers ── */
+.avatar-trigger {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: block;
+    flex-shrink: 0;
+    border-radius: 50%;
+    -webkit-tap-highlight-color: transparent;
+}
+.card-username-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text);
+    font-family: var(--font-body);
+    text-align: left;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    -webkit-tap-highlight-color: transparent;
+}
+.card-username-btn:active { color: var(--accent); }
+
+/* ─── USER POPUP (mobile: fixed bottom sheet style on very small, popup on larger) ── */
+.user-popup {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 40px rgba(0,0,0,.8);
+    width: calc(100vw - 32px);
+    max-width: 300px;
+    overflow: hidden;
+    animation: popup-in .18s ease;
+}
+@keyframes popup-in {
+    from { opacity: 0; transform: scale(.93) translateY(-6px); }
+    to   { opacity: 1; transform: scale(1)  translateY(0); }
+}
+
+.user-popup-header { display: flex; align-items: center; gap: 10px; padding: 12px 14px 10px; background: linear-gradient(135deg, var(--bg3), var(--bg2)); border-bottom: 1px solid var(--border); }
+.user-popup-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent2); }
+.user-popup-name   { font-weight: 700; font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-popup-rank   { font-size: 11px; margin-top: 3px; display: flex; align-items: center; gap: 5px; }
+.popup-rank-chip   { font-family: var(--font-display); font-size: 9px; font-weight: 700; letter-spacing: 1px; padding: 2px 5px; border-radius: 3px; color: #fff; }
+.popup-elo         { font-family: var(--font-mono); font-size: 10px; color: var(--accent); }
+.user-popup-game   { font-size: 10px; color: var(--text3); margin-top: 2px; }
+.user-popup-loading { color: var(--text3); font-size: 10px; }
+.user-popup-info   { flex: 1; min-width: 0; }
+
+.user-popup-stats { display: flex; padding: 8px 14px; border-bottom: 1px solid var(--border); }
+.popup-stat { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.popup-stat + .popup-stat { border-left: 1px solid var(--border); }
+.popup-stat-n { font-family: var(--font-display); font-size: 15px; font-weight: 900; color: var(--text); }
+.popup-stat-l { font-size: 9px; color: var(--text3); letter-spacing: 1px; }
+
+.user-popup-actions { display: flex; flex-direction: column; padding: 4px 0; }
+.popup-action-btn { background: none; border: none; width: 100%; text-align: left; padding: 11px 14px; font-size: 14px; font-family: var(--font-body); color: var(--text2); cursor: pointer; display: flex; align-items: center; gap: 10px; -webkit-tap-highlight-color: transparent; }
+.popup-action-btn:active { background: var(--bg3); color: var(--text); }
+.popup-chat:active   { color: var(--accent); }
+.popup-friend:active { color: var(--green); }
+.popup-lobby:active  { color: var(--accent2); }
+.popup-team:active   { color: var(--gold); }
+.popup-report:active { color: var(--red); }
+.popup-block:active  { color: var(--red); }
+.popup-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
 /* ─── POST COMPOSER ─────────────────────────────────────────────────────── */
 .post-composer {
     background: var(--bg2);

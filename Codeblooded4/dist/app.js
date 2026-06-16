@@ -574,11 +574,16 @@ async function loadFeed() {
     const list = document.getElementById('feed-list');
     list.innerHTML = '<div class="feed-loading">Loading…</div>';
     try {
+        const blocked = currentProfile?.blocked || [];
         const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(30));
         const snap = await getDocs(q);
         if (snap.empty) { list.innerHTML = '<div class="feed-loading">No posts yet. Be the first!</div>'; return; }
         list.innerHTML = '';
-        snap.forEach(d => list.appendChild(buildPostCard(d.id, d.data())));
+        snap.forEach(d => {
+          if (blocked.includes(d.data().uid)) return; // hide blocked users
+          list.appendChild(buildPostCard(d.id, d.data()));
+        });
+        if (!list.hasChildNodes()) list.innerHTML = '<div class="feed-loading">No posts yet. Be the first!</div>';
     } catch (e) {
         list.innerHTML = `<div class="feed-loading">Error: ${e.message}</div>`;
     }
@@ -599,9 +604,11 @@ function buildPostCard(id, data) {
     card.className = 'feed-card';
     card.innerHTML = `
     <div class="card-header">
-      <img class="avatar-sm" src="${avatarUrl(data)}" alt="${escHtml(data.username)}" />
+      <button class="user-trigger avatar-trigger" data-uid="${escHtml(data.uid)}" data-username="${escHtml(data.username)}" title="View ${escHtml(data.username)}">
+        <img class="avatar-sm" src="${avatarUrl(data)}" alt="${escHtml(data.username)}" />
+      </button>
       <div class="card-meta">
-        <div class="card-username">${escHtml(data.username)}</div>
+        <button class="user-trigger card-username-btn" data-uid="${escHtml(data.uid)}" data-username="${escHtml(data.username)}">${escHtml(data.username)}</button>
         <div class="card-timestamp">${timeAgo(data.createdAt)}</div>
       </div>
       <div class="card-tags">
@@ -634,6 +641,13 @@ function buildPostCard(id, data) {
   card.querySelector('.share-btn')?.addEventListener('click', () => sharePost(id, data));
   card.querySelector('.comment-input')?.addEventListener('keydown', e => {
     if (e.key === 'Enter') submitComment(id);
+  });
+  // User popup triggers
+  card.querySelectorAll('.user-trigger').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      openUserPopup(btn.dataset.uid, btn.dataset.username, btn);
+    });
   });
   // Expand image on tap
   card.querySelector('.card-media-img')?.addEventListener('click', () => openMediaLightbox(data.mediaUrl, 'image'));
@@ -673,6 +687,219 @@ function openMediaLightbox(url, type) {
         : `<video src="${url}" controls autoplay style="max-width:100%;max-height:90vh;border-radius:8px"></video>`;
     lb.addEventListener('click', () => lb.remove());
     document.body.appendChild(lb);
+}
+
+// ─── USER POPUP ──────────────────────────────────────────────────────────────
+let userPopupCloseHandler = null;
+
+async function openUserPopup(uid, username, anchorEl) {
+  // Close any existing popup
+  closeUserPopup();
+
+  // Don't show popup for yourself
+  if (uid === currentUser?.uid) return;
+
+  // Build popup skeleton
+  const popup = document.createElement('div');
+  popup.id = 'user-popup';
+  popup.className = 'user-popup';
+  popup.innerHTML = `
+    <div class="user-popup-header">
+      <div class="user-popup-avatar-wrap">
+        <img class="user-popup-avatar" src="https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=1f2433&color=00e5ff&bold=true&size=80" id="popup-avatar" />
+      </div>
+      <div class="user-popup-info">
+        <div class="user-popup-name" id="popup-name">${escHtml(username)}</div>
+        <div class="user-popup-rank" id="popup-rank"><span class="user-popup-loading">Loading…</span></div>
+        <div class="user-popup-game" id="popup-game"></div>
+      </div>
+    </div>
+    <div class="user-popup-stats" id="popup-stats"></div>
+    <div class="user-popup-actions">
+      <button class="popup-action-btn popup-chat"    data-action="chat"    data-uid="${escHtml(uid)}" data-username="${escHtml(username)}">💬 Chat</button>
+      <button class="popup-action-btn popup-friend"  data-action="friend"  data-uid="${escHtml(uid)}" data-username="${escHtml(username)}">➕ Add Friend</button>
+      <button class="popup-action-btn popup-lobby"   data-action="lobby"   data-uid="${escHtml(uid)}" data-username="${escHtml(username)}">🎮 Invite to Lobby</button>
+      <button class="popup-action-btn popup-team"    data-action="team"    data-uid="${escHtml(uid)}" data-username="${escHtml(username)}">🛡️ Invite to Team</button>
+      <div class="popup-divider"></div>
+      <button class="popup-action-btn popup-report"  data-action="report"  data-uid="${escHtml(uid)}" data-username="${escHtml(username)}">🚩 Report User</button>
+      <button class="popup-action-btn popup-block"   data-action="block"   data-uid="${escHtml(uid)}" data-username="${escHtml(username)}">🚫 Block User</button>
+    </div>`;
+
+  document.body.appendChild(popup);
+
+  // Position relative to anchor
+  positionPopup(popup, anchorEl);
+
+  // Wire action buttons
+  popup.querySelectorAll('.popup-action-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      handleUserPopupAction(btn.dataset.action, btn.dataset.uid, btn.dataset.username);
+    });
+  });
+
+  // Close on outside click / scroll
+  setTimeout(() => {
+    userPopupCloseHandler = e => {
+      if (!popup.contains(e.target)) closeUserPopup();
+    };
+    document.addEventListener('click', userPopupCloseHandler, { capture: true });
+    document.addEventListener('scroll', closeUserPopup, { once: true, capture: true });
+  }, 10);
+
+  // Load user data asynchronously
+  try {
+    const snap = await getDoc(doc(db, 'users', uid));
+    if (!snap.exists()) return;
+    const d = snap.data();
+    const rank = getRank(d.elo || 1000);
+
+    const avatarEl = document.getElementById('popup-avatar');
+    if (avatarEl) avatarEl.src = avatarUrl(d);
+
+    const rankEl = document.getElementById('popup-rank');
+    if (rankEl) rankEl.innerHTML = `<span class="popup-rank-chip" style="background:${rank.color}">${rank.label}</span> <span class="popup-elo">${d.elo || 1000} ELO</span>`;
+
+    const gameEl = document.getElementById('popup-game');
+    if (gameEl && d.favGame) gameEl.textContent = d.favGame;
+
+    const statsEl = document.getElementById('popup-stats');
+    if (statsEl) {
+      const wr = d.matches > 0 ? Math.round((d.wins / d.matches) * 100) : 0;
+      statsEl.innerHTML = `
+        <div class="popup-stat"><span class="popup-stat-n">${d.wins || 0}</span><span class="popup-stat-l">Wins</span></div>
+        <div class="popup-stat"><span class="popup-stat-n">${d.losses || 0}</span><span class="popup-stat-l">Losses</span></div>
+        <div class="popup-stat"><span class="popup-stat-n">${wr}%</span><span class="popup-stat-l">Win Rate</span></div>`;
+    }
+
+    // Re-position after content loaded (may be taller now)
+    positionPopup(popup, anchorEl);
+  } catch(e) { /* silently ignore */ }
+}
+
+function positionPopup(popup, anchorEl) {
+  const rect = anchorEl.getBoundingClientRect();
+  const pw = 260;
+  const margin = 8;
+  const viewW = window.innerWidth;
+  const viewH = window.innerHeight;
+
+  popup.style.position = 'fixed';
+  popup.style.width    = pw + 'px';
+  popup.style.zIndex   = '9998';
+
+  // Horizontal: prefer right of anchor, flip left if overflow
+  let left = rect.right + margin;
+  if (left + pw > viewW - margin) left = rect.left - pw - margin;
+  if (left < margin) left = margin;
+
+  // Vertical: prefer below anchor, flip up if overflow
+  let top = rect.bottom + margin;
+  const popH = popup.offsetHeight || 320;
+  if (top + popH > viewH - margin) top = rect.top - popH - margin;
+  if (top < margin) top = margin;
+
+  popup.style.left = left + 'px';
+  popup.style.top  = top  + 'px';
+}
+
+function closeUserPopup() {
+  const popup = document.getElementById('user-popup');
+  if (popup) popup.remove();
+  if (userPopupCloseHandler) {
+    document.removeEventListener('click', userPopupCloseHandler, { capture: true });
+    userPopupCloseHandler = null;
+  }
+}
+
+async function handleUserPopupAction(action, uid, username) {
+  closeUserPopup();
+  switch (action) {
+    case 'chat':
+      toast(`💬 Chat with ${username} — DM feature coming soon!`, '');
+      break;
+
+    case 'friend':
+      try {
+        const ref = doc(db, 'users', currentUser.uid);
+        await updateDoc(ref, { friends: arrayUnion(uid) });
+        // Also write a notification to the target user
+        await addDoc(collection(db, 'users', uid, 'notifications'), {
+          type: 'friend_request',
+          fromUid: currentUser.uid,
+          fromUsername: currentProfile.username,
+          fromPhotoURL: currentProfile.photoURL || '',
+          createdAt: serverTimestamp(),
+          read: false
+        });
+        toast(`➕ Friend request sent to ${username}!`, 'success');
+      } catch(e) { toast('Could not send friend request: ' + e.message, 'error'); }
+      break;
+
+    case 'lobby':
+      try {
+        await addDoc(collection(db, 'users', uid, 'notifications'), {
+          type: 'lobby_invite',
+          fromUid: currentUser.uid,
+          fromUsername: currentProfile.username,
+          fromPhotoURL: currentProfile.photoURL || '',
+          createdAt: serverTimestamp(),
+          read: false
+        });
+        toast(`🎮 Lobby invite sent to ${username}!`, 'success');
+      } catch(e) { toast('Could not send invite: ' + e.message, 'error'); }
+      break;
+
+    case 'team': {
+      // Find teams the current user owns/is in
+      try {
+        const teamsSnap = await getDocs(
+          query(collection(db, 'teams'), where('createdBy', '==', currentUser.uid), limit(10))
+        );
+        if (teamsSnap.empty) {
+          toast('You have no teams to invite to. Create one first!', '');
+          return;
+        }
+        // If multiple teams, pick first for now (could show sub-menu)
+        const teamData = teamsSnap.docs[0].data();
+        await addDoc(collection(db, 'users', uid, 'notifications'), {
+          type: 'team_invite',
+          fromUid: currentUser.uid,
+          fromUsername: currentProfile.username,
+          fromPhotoURL: currentProfile.photoURL || '',
+          teamId: teamsSnap.docs[0].id,
+          teamName: teamData.name,
+          createdAt: serverTimestamp(),
+          read: false
+        });
+        toast(`🛡️ Team invite sent to ${username}!`, 'success');
+      } catch(e) { toast('Could not send team invite: ' + e.message, 'error'); }
+      break;
+    }
+
+    case 'report':
+      if (!confirm(`Report ${username} for inappropriate behaviour?`)) return;
+      try {
+        await addDoc(collection(db, 'reports'), {
+          reportedUid: uid,
+          reportedUsername: username,
+          reporterUid: currentUser.uid,
+          reporterUsername: currentProfile.username,
+          createdAt: serverTimestamp()
+        });
+        toast(`🚩 ${username} has been reported. Thank you.`, 'success');
+      } catch(e) { toast('Could not submit report: ' + e.message, 'error'); }
+      break;
+
+    case 'block':
+      if (!confirm(`Block ${username}? Their posts will be hidden from your feed.`)) return;
+      try {
+        await updateDoc(doc(db, 'users', currentUser.uid), { blocked: arrayUnion(uid) });
+        toast(`🚫 ${username} has been blocked.`, 'success');
+        loadFeed(); // Refresh feed to hide blocked user's posts
+      } catch(e) { toast('Could not block user: ' + e.message, 'error'); }
+      break;
+  }
 }
 
 // ─── COMMENTS ─────────────────────────────────────────────────────────────────
