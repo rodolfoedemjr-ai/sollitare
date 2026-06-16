@@ -15,6 +15,7 @@ import {
 import {
     getFirestore,
     collection,
+    collectionGroup,
     addDoc,
     getDocs,
     getDoc,
@@ -91,80 +92,6 @@ const ELO_WIN = 25;
 const ELO_DRAW = 0;
 const ELO_LOSS = -18;
 
-// ─── PRESENCE / ONLINE STATUS ─────────────────────────────────────────────
-// A user is considered "online" if their `lastSeen` timestamp is within this
-// window. We refresh `lastSeen` on a heartbeat while the tab is active, and
-// mark the user offline on unload/visibility change (best-effort).
-const PRESENCE_INTERVAL_MS = 30000;       // heartbeat every 30s
-const PRESENCE_ONLINE_WINDOW_MS = 75000;  // considered online if seen in last 75s
-let presenceTimer = null;
-
-function isUserOnline(data) {
-    if (!data) return false;
-    if (data.isOnline === false) return false;
-    const ts = data.lastSeen;
-    if (!ts) return false;
-    const millis = ts.toMillis ? ts.toMillis() : ts;
-    return (Date.now() - millis) < PRESENCE_ONLINE_WINDOW_MS;
-}
-
-// Returns the inline HTML for a status dot, given a user data object.
-function statusDot(data, extraClass = '') {
-    const online = isUserOnline(data);
-    return `<span class="status-dot ${online ? 'online' : 'offline'} ${extraClass}" title="${online ? 'Online' : 'Offline'}"></span>`;
-}
-
-// Returns a username + status dot. If the user is someone other than the
-// current user, the username is wrapped in a clickable ".user-chip" span
-// (data-uid/data-username) that opens the user action menu (Add Friend,
-// Chat, Invite to Team Chat, Report, Block).
-function userChip(uid, username, statusData) {
-    const name = escHtml(username || 'Player');
-    if (!uid || uid === currentUser?.uid) {
-        return `${name} ${statusDot(statusData)}`;
-    }
-    return `<span class="user-chip" data-uid="${uid}" data-username="${name}">${name}</span> ${statusDot(statusData)}`;
-}
-
-async function setPresence(online) {
-    if (!currentUser) return;
-    try {
-        await updateDoc(doc(db, 'users', currentUser.uid), {
-            isOnline: online,
-            lastSeen: serverTimestamp()
-        });
-    } catch (_) { /* ignore — user doc may not exist yet */ }
-}
-
-function startPresenceHeartbeat() {
-    stopPresenceHeartbeat();
-    setPresence(true);
-    presenceTimer = setInterval(() => setPresence(true), PRESENCE_INTERVAL_MS);
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
-}
-
-function stopPresenceHeartbeat() {
-    if (presenceTimer) clearInterval(presenceTimer);
-    presenceTimer = null;
-    document.removeEventListener('visibilitychange', handleVisibilityChange);
-    window.removeEventListener('beforeunload', handleBeforeUnload);
-}
-
-function handleVisibilityChange() {
-    if (document.visibilityState === 'visible') {
-        setPresence(true);
-    } else {
-        setPresence(false);
-    }
-}
-
-function handleBeforeUnload() {
-    setPresence(false);
-}
-
-
 // ─── AVATARS (initials fallback) ──────────────────────────────────────────
 function avatarUrl(user) {
     return user ?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.displayName || user?.username || 'Player')}&background=1f2433&color=00e5ff&bold=true&size=80`;
@@ -225,29 +152,7 @@ function timeAgo(ts) {
 // ─── PAGE ROUTING ────────────────────────────────────────────────────────────
 let currentUser = null;
 let currentProfile = null;
-
-// Cache of { [uid]: userData } used to render online/offline dots next to
-// usernames across feed, comments, leaderboard, and chat without refetching.
-const usersCache = new Map();
-
-async function getUserData(uid, { fresh = false } = {}) {
-    if (!uid) return null;
-    if (!fresh && usersCache.has(uid)) return usersCache.get(uid);
-    try {
-        const snap = await getDoc(doc(db, 'users', uid));
-        const data = snap.exists() ? snap.data() : null;
-        usersCache.set(uid, data);
-        return data;
-    } catch (_) {
-        return usersCache.get(uid) || null;
-    }
-}
-
-// Pre-warm the cache for a batch of uids (deduped, parallel).
-async function preloadUsers(uids) {
-    const unique = [...new Set(uids.filter(Boolean))];
-    await Promise.all(unique.map(uid => getUserData(uid, { fresh: true })));
-}
+let commentsUnsub = null;
 
 function showPage(id) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -260,7 +165,6 @@ function showPage(id) {
     if (id === 'matches') loadMatches();
     if (id === 'teams') loadTeams();
     if (id === 'profile') loadProfile();
-    if (id === 'chat') initChatPage();
     if (id === 'leaderboard') loadRightPanel();
 }
 
@@ -276,33 +180,6 @@ window.addEventListener('DOMContentLoaded', () => {
     wireCategorySpecify('reg-game', 'reg-game-specify');
     wireCategorySpecify('post-game-tag', 'post-game-tag-specify');
     wireCategorySpecify('profile-fav-game-select', 'profile-fav-game-specify');
-
-    // ─── USER ACTION MENU (delegated clicks) ───────────────────────────────────────
-    document.addEventListener('click', e => {
-        const chip = e.target.closest('.user-chip');
-        if (chip) {
-            e.stopPropagation();
-            if (menuUid === chip.dataset.uid && !document.getElementById('user-menu').classList.contains('hidden')) {
-                closeUserMenu();
-            } else {
-                openUserMenu(chip.dataset.uid, chip.dataset.username, chip);
-            }
-            return;
-        }
-        const menu = document.getElementById('user-menu');
-        if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target)) {
-            closeUserMenu();
-        }
-    });
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') closeUserMenu();
-    });
-    window.addEventListener('scroll', e => {
-        const menu = document.getElementById('user-menu');
-        if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target)) {
-            closeUserMenu();
-        }
-    }, true);
 
     // ─── AUTH ─────────────────────────────────────────────────────────────────────
     const registerToggle = document.getElementById('go-register');
@@ -356,11 +233,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     favGame: '',
                     bio: '',
                     discord: '',
-                    friends: [],
-                    blocked: [],
                     isAdmin: false, // ← regular user by default
-                    isOnline: true,
-                    lastSeen: serverTimestamp(),
                     createdAt: serverTimestamp()
                 });
             }
@@ -419,11 +292,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 favGame,
                 bio: '',
                 discord: '',
-                friends: [],
-                blocked: [],
                 isAdmin: false, // ← regular user by default
-                isOnline: true,
-                lastSeen: serverTimestamp(),
                 createdAt: serverTimestamp()
             });
 
@@ -443,13 +312,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('btn-logout') ?.addEventListener('click', async () => {
-        if (currentUser) {
-            try { await updateDoc(doc(db, 'users', currentUser.uid), { isOnline: false, lastSeen: serverTimestamp() }); } catch(_) {}
-        }
-        stopPresenceHeartbeat();
-        signOut(auth);
-    });
+    document.getElementById('btn-logout') ?.addEventListener('click', () => signOut(auth));
 });
 
 function friendlyError(code) {
@@ -478,19 +341,15 @@ onAuthStateChanged(auth, async user => {
         document.getElementById('app').classList.remove('hidden');
         await refreshCurrentProfile();
         updateSidebar();
-        startPresenceHeartbeat();
         showPage('feed');
         loadRightPanel();
+    initCommentNotifications();
     } else {
-        if (currentUser) {
-            // Best-effort: mark offline before clearing user (won't await on sign-out)
-            updateDoc(doc(db, 'users', currentUser.uid), { isOnline: false, lastSeen: serverTimestamp() }).catch(() => {});
-        }
-        stopPresenceHeartbeat();
         currentUser = null;
         currentProfile = null;
         document.getElementById('auth-overlay').classList.remove('hidden');
         document.getElementById('app').classList.add('hidden');
+    if (commentsUnsub) { commentsUnsub(); commentsUnsub = null; }
     }
 });
 
@@ -512,11 +371,7 @@ async function refreshCurrentProfile() {
             favGame: currentProfile.favGame || '',
             bio: currentProfile.bio || '',
             discord: currentProfile.discord || '',
-            friends: currentProfile.friends || [],
-            blocked: currentProfile.blocked || [],
             isAdmin: currentProfile.isAdmin ?? false,
-            isOnline: currentProfile.isOnline ?? true,
-            lastSeen: currentProfile.lastSeen ?? serverTimestamp(),
         };
         const missing = Object.keys(defaults).filter(k => currentProfile[k] === undefined || currentProfile[k] === null);
         currentProfile = { ...currentProfile, ...defaults };
@@ -537,11 +392,7 @@ async function refreshCurrentProfile() {
             favGame: '',
             bio: '',
             discord: '',
-            friends: [],
-            blocked: [],
             isAdmin: false,
-            isOnline: true,
-            lastSeen: serverTimestamp(),
             createdAt: serverTimestamp()
         };
         try {
@@ -558,116 +409,24 @@ function updateSidebar() {
     if (!currentProfile) return;
     const rank = getRank(currentProfile.elo || 1000);
     document.getElementById('sidebar-avatar').src = avatarUrl(currentProfile);
-    document.getElementById('sidebar-username').innerHTML = `${escHtml(currentProfile.username || 'Player')} <span class="status-dot online" id="sidebar-status-dot" title="Online"></span>`;
+    document.getElementById('sidebar-username').textContent = currentProfile.username || 'Player';
     document.getElementById('sidebar-elo').textContent = `${currentProfile.elo || 1000} ELO`;
     document.getElementById('sidebar-rank-badge').textContent = rank.short;
     document.getElementById('sidebar-rank-badge').style.background = rank.color;
 }
 
-// ─── MEDIA ATTACHMENTS (shared by posts + all chat surfaces) ─────────────────
-const MAX_MEDIA_BYTES = 25 * 1024 * 1024; // 25 MB
-
-// Tracks the currently-selected file for each attach context, keyed by a
-// short id (e.g. 'post', 'global', 'dm', 'team').
-const pendingMedia = new Map();
-
-function mediaType(file) {
-    if (file.type.startsWith('image/')) return 'image';
-    if (file.type.startsWith('video/')) return 'video';
-    return null;
-}
-
-// Renders a small preview (with a remove button) into `previewEl` for the
-// given file, and stores the file in `pendingMedia` under `key`.
-function showMediaPreview(key, file, previewEl, onRemove) {
-    const type = mediaType(file);
-    if (!type) { toast('Only images and videos can be attached.', 'error'); return; }
-    if (file.size > MAX_MEDIA_BYTES) { toast('File must be under 25 MB.', 'error'); return; }
-
-    pendingMedia.set(key, { file, type });
-
-    const url = URL.createObjectURL(file);
-    previewEl.innerHTML = '';
-    previewEl.style.display = 'flex';
-
-    const mediaEl = document.createElement(type === 'image' ? 'img' : 'video');
-    mediaEl.src = url;
-    if (type === 'video') mediaEl.controls = true;
-    previewEl.appendChild(mediaEl);
-
-    const removeBtn = document.createElement('button');
-    removeBtn.type = 'button';
-    removeBtn.className = 'media-remove-btn';
-    removeBtn.textContent = '✕ Remove';
-    removeBtn.addEventListener('click', () => {
-        pendingMedia.delete(key);
-        previewEl.innerHTML = '';
-        previewEl.style.display = 'none';
-        URL.revokeObjectURL(url);
-        if (onRemove) onRemove();
-    });
-    previewEl.appendChild(removeBtn);
-}
-
-// Uploads the pending file (if any) for `key` to `folder/<currentUid>/<timestamp>_<filename>`
-// and returns { mediaUrl, mediaType } or {} if nothing is attached.
-async function uploadPendingMedia(key, folder) {
-    const pending = pendingMedia.get(key);
-    if (!pending) return {};
-    const { file, type } = pending;
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const path = `${folder}/${currentUser.uid}/${Date.now()}_${safeName}`;
-    const ref = storageRef(storage, path);
-    await uploadBytes(ref, file, { contentType: file.type });
-    const url = await getDownloadURL(ref);
-    pendingMedia.delete(key);
-    return { mediaUrl: url, mediaType: type };
-}
-
-function clearMediaPreview(key, previewEl) {
-    pendingMedia.delete(key);
-    if (previewEl) {
-        previewEl.innerHTML = '';
-        previewEl.style.display = 'none';
-    }
-}
-
-// Renders the media HTML for a post or chat message, given { mediaUrl, mediaType }.
-function renderMediaHtml(data, containerClass) {
-    if (!data.mediaUrl) return '';
-    if (data.mediaType === 'video') {
-        return `<div class="${containerClass}"><video src="${escHtml(data.mediaUrl)}" controls></video></div>`;
-    }
-    return `<div class="${containerClass}"><img src="${escHtml(data.mediaUrl)}" alt="attachment" loading="lazy" /></div>`;
-}
-
-
+// ─── FEED ─────────────────────────────────────────────────────────────────────
 document.getElementById('btn-new-post').addEventListener('click', () => {
     const c = document.getElementById('post-composer');
     c.style.display = c.style.display === 'none' ? 'block' : 'none';
-});
-
-document.getElementById('post-media-input').addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    showMediaPreview('post', file, document.getElementById('post-media-preview'));
-    e.target.value = '';
 });
 
 document.getElementById('btn-post-submit').addEventListener('click', async() => {
     const content = document.getElementById('post-content').value.trim();
     const gameTag = combineCategory('post-game-tag', 'post-game-tag-specify');
     const postType = document.getElementById('post-type').value;
-    const hasMedia = pendingMedia.has('post');
-    if (!content && !hasMedia) return toast('Write something or attach media first.', 'error');
-    const submitBtn = document.getElementById('btn-post-submit');
-    submitBtn.disabled = true;
+    if (!content) return toast('Write something first.', 'error');
     try {
-        let media = {};
-        if (hasMedia) {
-            submitBtn.textContent = 'UPLOADING…';
-            media = await uploadPendingMedia('post', 'posts');
-        }
         await addDoc(collection(db, 'posts'), {
             uid: currentUser.uid,
             username: currentProfile.username,
@@ -677,7 +436,6 @@ document.getElementById('btn-post-submit').addEventListener('click', async() => 
             postType,
             likes: [],
             comments: 0,
-            ...media,
             createdAt: serverTimestamp()
         });
         document.getElementById('post-content').value = '';
@@ -685,14 +443,10 @@ document.getElementById('btn-post-submit').addEventListener('click', async() => 
         document.getElementById('post-game-tag-specify').value = '';
         document.getElementById('post-game-tag-specify').style.display = 'none';
         document.getElementById('post-composer').style.display = 'none';
-        clearMediaPreview('post', document.getElementById('post-media-preview'));
         toast('Posted! 🔥', 'success');
         loadFeed();
     } catch (e) {
         toast('Failed to post: ' + e.message, 'error');
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'POST';
     }
 });
 
@@ -703,17 +457,8 @@ async function loadFeed() {
         const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(30));
         const snap = await getDocs(q);
         if (snap.empty) { list.innerHTML = '<div class="feed-loading">No posts yet. Be the first!</div>'; return; }
-        await preloadUsers(snap.docs.map(d => d.data().uid));
         list.innerHTML = '';
-        const blocked = currentProfile?.blocked || [];
-        let shown = 0;
-        snap.forEach(d => {
-            const data = d.data();
-            if (blocked.includes(data.uid)) return;
-            list.appendChild(buildPostCard(d.id, data));
-            shown++;
-        });
-        if (shown === 0) list.innerHTML = '<div class="feed-loading">No posts to show.</div>';
+        snap.forEach(d => list.appendChild(buildPostCard(d.id, d.data())));
     } catch (e) {
         list.innerHTML = `<div class="feed-loading">Error: ${e.message}</div>`;
     }
@@ -728,7 +473,7 @@ function buildPostCard(id, data) {
     <div class="card-header">
       <img class="avatar-sm" src="${avatarUrl(data)}" alt="${data.username}" />
       <div class="card-meta">
-        <div class="card-username">${userChip(data.uid, data.username, usersCache.get(data.uid))}</div>
+        <div class="card-username">${escHtml(data.username)}</div>
         <div class="card-timestamp">${timeAgo(data.createdAt)}</div>
       </div>
       <div class="card-tags">
@@ -737,7 +482,6 @@ function buildPostCard(id, data) {
       </div>
     </div>
     <div class="card-body">${escHtml(data.content)}</div>
-    ${renderMediaHtml(data, 'card-media')}
     <div class="card-actions">
       <button class="card-action-btn like-btn ${liked ? 'liked' : ''}" data-id="${id}">
         ${liked ? '❤️' : '🤍'} ${(data.likes || []).length}
@@ -784,17 +528,8 @@ async function loadComments(postId) {
     const q = query(collection(db, 'posts', postId, 'comments'), orderBy('createdAt', 'asc'), limit(100));
     const snap = await getDocs(q);
     if (snap.empty) { list.innerHTML = '<div class="no-comments">No comments yet. Be the first to reply!</div>'; return; }
-    await preloadUsers(snap.docs.map(d => d.data().uid));
     list.innerHTML = '';
-    const blocked = currentProfile?.blocked || [];
-    let shown = 0;
-    snap.forEach(d => {
-      const data = d.data();
-      if (blocked.includes(data.uid)) return;
-      list.appendChild(buildCommentRow(postId, d.id, data));
-      shown++;
-    });
-    if (shown === 0) list.innerHTML = '<div class="no-comments">No comments to show.</div>';
+    snap.forEach(d => list.appendChild(buildCommentRow(postId, d.id, d.data())));
   } catch (e) {
     list.innerHTML = `<div class="feed-loading">Error: ${e.message}</div>`;
   }
@@ -807,7 +542,7 @@ function buildCommentRow(postId, commentId, data) {
     <img class="avatar-xs" src="${avatarUrl(data)}" alt="${escHtml(data.username)}" />
     <div class="comment-body">
       <div class="comment-meta">
-        <span class="comment-username">${userChip(data.uid, data.username, usersCache.get(data.uid))}</span>
+        <span class="comment-username">${escHtml(data.username)}</span>
         <span class="comment-timestamp">${timeAgo(data.createdAt)}</span>
       </div>
       <div class="comment-text">${escHtml(data.content)}</div>
@@ -902,14 +637,14 @@ async function loadLeaderboard() {
     list.innerHTML = '';
     let pos = 1;
     docs.slice(0, 50).forEach(d => {
-      list.appendChild(buildLbRow(pos++, d.data(), d.id));
+      list.appendChild(buildLbRow(pos++, d.data()));
     });
   } catch(e) {
     list.innerHTML = `<div class="feed-loading">Error: ${e.message}</div>`;
   }
 }
 
-function buildLbRow(pos, data, uid) {
+function buildLbRow(pos, data) {
   const rank = getRank(data.elo || 1000);
   const rankClass = pos === 1 ? 'gold-1' : pos === 2 ? 'silver-2' : pos === 3 ? 'bronze-3' : '';
   const wr = data.matches > 0 ? Math.round((data.wins / data.matches) * 100) : 0;
@@ -919,7 +654,7 @@ function buildLbRow(pos, data, uid) {
     <div class="lb-rank ${rankClass}">${pos}</div>
     <img src="${avatarUrl(data)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1.5px solid var(--border2)" />
     <div class="lb-info">
-      <div class="lb-name">${userChip(uid, data.username, data)}</div>
+      <div class="lb-name">${escHtml(data.username)}</div>
       <div class="lb-game">${escHtml(data.favGame || '—')} · ${wr}% WR · ${data.matches || 0} games</div>
     </div>
     <span class="lb-rank-chip" style="background:${rank.color}">${rank.short}</span>
@@ -1199,7 +934,7 @@ async function loadRightPanel() {
       row.innerHTML = `
         <img src="${avatarUrl(data)}" />
         <div class="panel-user-info">
-          <div class="panel-user-name">${userChip(d.id, data.username, data)}</div>
+          <div class="panel-user-name">${escHtml(data.username)}</div>
           <div class="panel-user-sub">${rank.label}</div>
         </div>
         <div class="panel-elo">${data.elo || 1000}</div>`;
@@ -1220,9 +955,10 @@ async function loadRightPanel() {
       row.innerHTML = `
         <img src="${avatarUrl(data)}" />
         <div class="panel-user-info">
-          <div class="panel-user-name">${userChip(d.id, data.username, data)}</div>
+          <div class="panel-user-name">${escHtml(data.username)}</div>
           <div class="panel-user-sub">${escHtml(data.favGame || 'No game set')}</div>
-        </div>`;
+        </div>
+        <span style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0"></span>`;
       el.appendChild(row);
     });
   } catch(_) {}
@@ -1245,679 +981,61 @@ async function loadRightPanel() {
   } catch(_) {}
 }
 
-// ─── CHAT ─────────────────────────────────────────────────────────────────────
-// Three chat surfaces, all built on the same rendering helpers:
-//   - Global Chat:  /globalChat/{messageId}
-//   - Direct Msgs:  /dmThreads/{threadId}/messages/{messageId}  (threadId = sorted "uidA_uidB")
-//   - Team Chat:    /teams/{teamId}/messages/{messageId}
-
-let chatInitDone = false;
-let globalChatUnsub = null;
-let dmMessagesUnsub = null;
-let dmThreadsUnsub = null;
-let teamChatMessagesUnsub = null;
-let activeDmThreadId = null;
-let activeDmOtherUser = null; // { uid, username, photoURL }
-let activeTeamId = null;
-
-function dmThreadId(uidA, uidB) {
-  return [uidA, uidB].sort().join('_');
-}
-
-function formatChatTime(ts) {
-  if (!ts) return '';
-  const d = ts.toMillis ? new Date(ts.toMillis()) : new Date(ts);
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-function renderChatMessage(data, container) {
-  const own = data.uid === currentUser?.uid;
-  if (!own && (currentProfile?.blocked || []).includes(data.uid)) return; // hide messages from blocked users
-  const userData = own ? currentProfile : usersCache.get(data.uid);
-  const row = document.createElement('div');
-  row.className = `chat-msg ${own ? 'own' : ''}`;
-  row.innerHTML = `
-    <img class="avatar-xs" src="${avatarUrl(data)}" alt="${escHtml(data.username)}" />
-    <div class="chat-msg-bubble">
-      <div class="chat-msg-meta">
-        ${userChip(data.uid, data.username, userData)}
-        <span class="chat-msg-time">${formatChatTime(data.createdAt)}</span>
-      </div>
-      ${data.text ? `<div class="chat-msg-text">${escHtml(data.text)}</div>` : ''}
-      ${renderMediaHtml(data, 'chat-msg-media')}
-    </div>`;
-  container.appendChild(row);
-}
-
-function scrollToBottom(el) {
-  el.scrollTop = el.scrollHeight;
-}
-
-async function sendChatMessage(collectionPath, text, media = {}) {
-  const trimmed = text.trim();
-  if (!trimmed && !media.mediaUrl) return;
-  if (!currentUser || !currentProfile) return toast('You must be signed in to chat.', 'error');
-  await addDoc(collection(db, ...collectionPath), {
-    uid: currentUser.uid,
-    username: currentProfile.username,
-    photoURL: currentProfile.photoURL || '',
-    text: trimmed,
-    ...media,
-    createdAt: serverTimestamp()
-  });
-}
-
-// ─── CHAT TABS ──────────────────────────────────────────────────────────────
-function initChatTabs() {
-  document.querySelectorAll('.chat-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      const target = tab.dataset.chatTab;
-      document.querySelectorAll('.chat-tab').forEach(t => t.classList.toggle('active', t === tab));
-      document.querySelectorAll('.chat-panel').forEach(p => p.classList.remove('active'));
-      document.getElementById(`chat-panel-${target}`).classList.add('active');
-
-      if (target === 'global') initGlobalChat();
-      if (target === 'dms') initDmChat();
-      if (target === 'team') initTeamChat();
-    });
-  });
-}
-
-// Called whenever the Chat nav page is opened.
-function initChatPage() {
-  if (!chatInitDone) {
-    initChatTabs();
-    chatInitDone = true;
+// ─── NOTIFICATIONS (comments) ───────────────────────────────────────────────
+async function requestNotificationPermission() {
+  if (!('Notification' in window)) return false;
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission !== 'denied') {
+    const p = await Notification.requestPermission();
+    return p === 'granted';
   }
-  // Always (re)load whichever tab is currently active.
-  const activeTab = document.querySelector('.chat-tab.active')?.dataset.chatTab || 'global';
-  if (activeTab === 'global') initGlobalChat();
-  if (activeTab === 'dms') initDmChat();
-  if (activeTab === 'team') initTeamChat();
+  return false;
 }
 
-// ─── GLOBAL CHAT ────────────────────────────────────────────────────────────
-function initGlobalChat() {
-  const container = document.getElementById('global-chat-messages');
-  const form = document.getElementById('global-chat-form');
-  const input = document.getElementById('global-chat-input');
-
-  if (globalChatUnsub) return; // already listening
-
-  container.innerHTML = '<div class="feed-loading">Loading chat…</div>';
-  const q = query(collection(db, 'globalChat'), orderBy('createdAt', 'asc'), limit(100));
-  globalChatUnsub = onSnapshot(q, async snap => {
-    const docs = snap.docs.map(d => d.data());
-    await preloadUsers(docs.map(d => d.uid));
-    container.innerHTML = '';
-    if (docs.length === 0) {
-      container.innerHTML = '<div class="feed-loading">No messages yet. Say hi! 👋</div>';
-    } else {
-      docs.forEach(data => renderChatMessage(data, container));
-    }
-    scrollToBottom(container);
-  }, err => {
-    container.innerHTML = `<div class="feed-loading">Error: ${err.message}</div>`;
-  });
-
-  if (!form.dataset.wired) {
-    form.dataset.wired = '1';
-
-    document.getElementById('global-chat-media-input').addEventListener('change', e => {
-      const file = e.target.files[0];
-      if (!file) return;
-      showMediaPreview('global', file, document.getElementById('global-chat-media-preview'));
-      e.target.value = '';
-    });
-
-    form.addEventListener('submit', async e => {
-      e.preventDefault();
-      const text = input.value;
-      const hasMedia = pendingMedia.has('global');
-      input.value = '';
-      const sendBtn = form.querySelector('button[type="submit"]');
-      try {
-        let media = {};
-        if (hasMedia) {
-          sendBtn.disabled = true;
-          media = await uploadPendingMedia('global', 'chatMedia/global');
-          clearMediaPreview('global', document.getElementById('global-chat-media-preview'));
-        }
-        await sendChatMessage(['globalChat'], text, media);
-      } catch (err) {
-        toast('Failed to send: ' + err.message, 'error');
-      } finally {
-        sendBtn.disabled = false;
-      }
-    });
-  }
+function showBrowserNotification(title, options = {}) {
+  try {
+    const n = new Notification(title, options);
+    n.onclick = () => { window.focus(); n.close(); };
+    return n;
+  } catch (e) { console.warn('Notification failed', e); }
 }
 
-// ─── DIRECT MESSAGES ────────────────────────────────────────────────────────
-function initDmChat() {
-  loadDmThreads();
-  wireDmSearch();
-  wireDmForm();
-}
-
-async function loadDmThreads() {
-  const list = document.getElementById('dm-thread-list');
+function initCommentNotifications() {
   if (!currentUser) return;
-
-  if (dmThreadsUnsub) dmThreadsUnsub();
-
-  // NOTE: we intentionally do NOT add orderBy('lastMessageAt') to this query.
-  // Combining `array-contains` with `orderBy` on a different field requires a
-  // Firestore composite index (this was the "query requires an index" error).
-  // Sorting client-side avoids that requirement entirely.
-  const q = query(
-    collection(db, 'dmThreads'),
-    where('participants', 'array-contains', currentUser.uid),
-    limit(30)
-  );
-
-  dmThreadsUnsub = onSnapshot(q, async snap => {
-    if (snap.empty) {
-      list.innerHTML = '<div class="feed-loading">No conversations yet. Search for a player to start one.</div>';
-      return;
-    }
-    let threads = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    threads.sort((a, b) => {
-      const at = a.lastMessageAt?.toMillis ? a.lastMessageAt.toMillis() : 0;
-      const bt = b.lastMessageAt?.toMillis ? b.lastMessageAt.toMillis() : 0;
-      return bt - at;
-    });
-    threads = threads.slice(0, 30);
-
-    const otherUids = threads.map(t => t.participants.find(p => p !== currentUser.uid));
-    await preloadUsers(otherUids);
-
-    const blocked = currentProfile?.blocked || [];
-    list.innerHTML = '';
-    threads.forEach(t => {
-      const otherUid = t.participants.find(p => p !== currentUser.uid);
-      if (blocked.includes(otherUid)) return; // hide threads with blocked users
-      const otherData = usersCache.get(otherUid);
-      const row = document.createElement('div');
-      row.className = `dm-thread ${activeDmThreadId === t.id ? 'active' : ''}`;
-      row.innerHTML = `
-        <img src="${avatarUrl(otherData)}" />
-        <div class="dm-thread-info">
-          <div class="dm-thread-name">${userChip(otherUid, otherData?.username || 'Player', otherData)}</div>
-          <div class="dm-thread-preview">${escHtml(t.lastMessage || 'No messages yet')}</div>
-        </div>`;
-      row.addEventListener('click', () => openDmThread(otherUid, otherData?.username || 'Player', otherData));
-      list.appendChild(row);
-    });
-    if (!list.children.length) {
-      list.innerHTML = '<div class="feed-loading">No conversations yet. Search for a player to start one.</div>';
-    }
-  }, err => {
-    list.innerHTML = `<div class="feed-loading">Error: ${err.message}</div>`;
-  });
-}
-
-function wireDmSearch() {
-  const input = document.getElementById('dm-user-search');
-  const results = document.getElementById('dm-search-results');
-  if (input.dataset.wired) return;
-  input.dataset.wired = '1';
-
-  let debounceTimer = null;
-  input.addEventListener('input', () => {
-    clearTimeout(debounceTimer);
-    const term = input.value.trim();
-    if (!term) { results.innerHTML = ''; return; }
-    debounceTimer = setTimeout(() => searchDmUsers(term), 300);
-  });
-}
-
-async function searchDmUsers(term) {
-  const results = document.getElementById('dm-search-results');
-  results.innerHTML = '<div class="feed-loading">Searching…</div>';
+  requestNotificationPermission();
+  if (commentsUnsub) { commentsUnsub(); commentsUnsub = null; }
   try {
-    // Firestore prefix search using range query on username
-    const q = query(
-      collection(db, 'users'),
-      orderBy('username'),
-      where('username', '>=', term),
-      where('username', '<=', term + '\uf8ff'),
-      limit(8)
-    );
-    const snap = await getDocs(q);
-    results.innerHTML = '';
-    let found = 0;
-    const blocked = currentProfile?.blocked || [];
-    snap.forEach(d => {
-      const data = d.data();
-      if (d.id === currentUser.uid) return; // skip self
-      if (blocked.includes(d.id)) return; // skip blocked users
-      found++;
-      usersCache.set(d.id, data);
-      const row = document.createElement('div');
-      row.className = 'dm-thread';
-      row.innerHTML = `
-        <img src="${avatarUrl(data)}" />
-        <div class="dm-thread-info">
-          <div class="dm-thread-name">${userChip(d.id, data.username, data)}</div>
-          <div class="dm-thread-preview">Click to message</div>
-        </div>`;
-      row.addEventListener('click', () => {
-        openDmThread(d.id, data.username, data);
-        document.getElementById('dm-user-search').value = '';
-        results.innerHTML = '';
-      });
-      results.appendChild(row);
-    });
-    if (found === 0) results.innerHTML = '<div class="feed-loading">No players found.</div>';
-  } catch (e) {
-    results.innerHTML = `<div class="feed-loading">Error: ${e.message}</div>`;
-  }
-}
-
-async function openDmThread(otherUid, otherUsername, otherData) {
-  activeDmThreadId = dmThreadId(currentUser.uid, otherUid);
-  activeDmOtherUser = { uid: otherUid, username: otherUsername, ...otherData };
-
-  // Ensure thread doc exists
-  const threadRef = doc(db, 'dmThreads', activeDmThreadId);
-  try {
-    const snap = await getDoc(threadRef);
-    if (!snap.exists()) {
-      await setDoc(threadRef, {
-        participants: [currentUser.uid, otherUid],
-        lastMessage: '',
-        lastMessageAt: serverTimestamp(),
-        lastSenderId: ''
-      });
-    }
-  } catch (e) {
-    toast('Could not open conversation: ' + e.message, 'error');
-    return;
-  }
-
-  // Header
-  const header = document.getElementById('dm-header');
-  header.innerHTML = `
-    <img src="${avatarUrl(otherData)}" />
-    <span>${userChip(otherUid, otherUsername, otherData)}</span>`;
-
-  document.getElementById('dm-chat-form').style.display = 'flex';
-
-  // Highlight active thread in sidebar
-  document.querySelectorAll('#dm-thread-list .dm-thread').forEach(el => el.classList.remove('active'));
-
-  // Messages listener
-  const container = document.getElementById('dm-chat-messages');
-  container.innerHTML = '<div class="feed-loading">Loading messages…</div>';
-  if (dmMessagesUnsub) dmMessagesUnsub();
-
-  const q = query(
-    collection(db, 'dmThreads', activeDmThreadId, 'messages'),
-    orderBy('createdAt', 'asc'),
-    limit(100)
-  );
-  dmMessagesUnsub = onSnapshot(q, async snap => {
-    const docs = snap.docs.map(d => d.data());
-    await preloadUsers(docs.map(d => d.uid));
-    container.innerHTML = '';
-    if (docs.length === 0) {
-      container.innerHTML = '<div class="feed-loading">No messages yet. Say hi! 👋</div>';
-    } else {
-      docs.forEach(data => renderChatMessage(data, container));
-    }
-    scrollToBottom(container);
-  }, err => {
-    container.innerHTML = `<div class="feed-loading">Error: ${err.message}</div>`;
-  });
-}
-
-function wireDmForm() {
-  const form = document.getElementById('dm-chat-form');
-  const input = document.getElementById('dm-chat-input');
-  if (form.dataset.wired) return;
-  form.dataset.wired = '1';
-
-  document.getElementById('dm-chat-media-input').addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    showMediaPreview('dm', file, document.getElementById('dm-chat-media-preview'));
-    e.target.value = '';
-  });
-
-  form.addEventListener('submit', async e => {
-    e.preventDefault();
-    if (!activeDmThreadId) return;
-    const text = input.value.trim();
-    const hasMedia = pendingMedia.has('dm');
-    if (!text && !hasMedia) return;
-    input.value = '';
-    const sendBtn = form.querySelector('button[type="submit"]');
-    try {
-      let media = {};
-      if (hasMedia) {
-        sendBtn.disabled = true;
-        media = await uploadPendingMedia('dm', `chatMedia/dm/${activeDmThreadId}`);
-        clearMediaPreview('dm', document.getElementById('dm-chat-media-preview'));
+    const q = query(collectionGroup(db, 'comments'), orderBy('createdAt', 'desc'));
+    commentsUnsub = onSnapshot(q, async snapshot => {
+      for (const change of snapshot.docChanges()) {
+        if (change.type !== 'added') continue;
+        const c = change.doc.data();
+        if (!c) continue;
+        if (!currentUser) continue;
+        // Skip notifications for our own comments
+        if (c.uid === currentUser.uid) continue;
+        // Determine parent post and check owner
+        const postRef = change.doc.ref.parent.parent;
+        if (!postRef) continue;
+        try {
+          const postSnap = await getDoc(postRef);
+          if (!postSnap.exists()) continue;
+          const post = postSnap.data();
+          if (!post) continue;
+          // Notify only if the comment is on a post owned by the current user
+          if (post.uid !== currentUser.uid) continue;
+          const title = `${c.username} commented on your post`;
+          const body = (c.content || '').slice(0, 140);
+          const icon = c.photoURL || post.photoURL || '';
+          showBrowserNotification(title, { body, icon });
+          toast(`${c.username}: ${body}`, 'info');
+        } catch (e) { console.error('Error fetching post for notification', e); }
       }
-      await sendChatMessage(['dmThreads', activeDmThreadId, 'messages'], text, media);
-      await updateDoc(doc(db, 'dmThreads', activeDmThreadId), {
-        lastMessage: text || (media.mediaType === 'video' ? '🎬 Video' : '🖼️ Image'),
-        lastMessageAt: serverTimestamp(),
-        lastSenderId: currentUser.uid
-      });
-    } catch (err) {
-      toast('Failed to send: ' + err.message, 'error');
-    } finally {
-      sendBtn.disabled = false;
-    }
-  });
+    }, err => console.error('Comment notifications listener error', err));
+  } catch (e) { console.error('Could not start comment notifications', e); }
 }
 
-// ─── TEAM CHAT ──────────────────────────────────────────────────────────────
-async function initTeamChat() {
-  const list = document.getElementById('team-chat-list');
-  list.innerHTML = '<div class="feed-loading">Loading your teams…</div>';
-  try {
-    const q = query(
-      collection(db, 'teams'),
-      where('members', 'array-contains', currentUser.uid),
-      limit(20)
-    );
-    const snap = await getDocs(q);
-    if (snap.empty) {
-      list.innerHTML = '<div class="feed-loading">Join or create a team to chat with teammates.</div>';
-      return;
-    }
-    list.innerHTML = '';
-    snap.forEach(d => {
-      const data = d.data();
-      const row = document.createElement('div');
-      row.className = `dm-thread ${activeTeamId === d.id ? 'active' : ''}`;
-      row.innerHTML = `
-        <div class="avatar-placeholder" style="display:flex;align-items:center;justify-content:center;background:var(--bg4);font-family:var(--font-display);font-weight:700;color:var(--accent)">${escHtml((data.tag || '?').slice(0,3))}</div>
-        <div class="dm-thread-info">
-          <div class="dm-thread-name">[${escHtml(data.tag)}] ${escHtml(data.name)}</div>
-          <div class="dm-thread-preview">${data.memberCount || 1} members</div>
-        </div>`;
-      row.addEventListener('click', () => openTeamChat(d.id, data));
-      list.appendChild(row);
-    });
-  } catch (e) {
-    list.innerHTML = `<div class="feed-loading">Error: ${e.message}</div>`;
-  }
-}
-
-function openTeamChat(teamId, teamData) {
-  activeTeamId = teamId;
-
-  const header = document.getElementById('team-chat-header');
-  header.innerHTML = `<span>🛡️ [${escHtml(teamData.tag)}] ${escHtml(teamData.name)} — Team Chat</span>`;
-
-  document.getElementById('team-chat-form').style.display = 'flex';
-  document.querySelectorAll('#team-chat-list .dm-thread').forEach(el => el.classList.remove('active'));
-
-  const container = document.getElementById('team-chat-messages');
-  container.innerHTML = '<div class="feed-loading">Loading messages…</div>';
-  if (teamChatMessagesUnsub) teamChatMessagesUnsub();
-
-  const q = query(
-    collection(db, 'teams', teamId, 'messages'),
-    orderBy('createdAt', 'asc'),
-    limit(100)
-  );
-  teamChatMessagesUnsub = onSnapshot(q, async snap => {
-    const docs = snap.docs.map(d => d.data());
-    await preloadUsers(docs.map(d => d.uid));
-    container.innerHTML = '';
-    if (docs.length === 0) {
-      container.innerHTML = '<div class="feed-loading">No messages yet. Say hi to your team! 👋</div>';
-    } else {
-      docs.forEach(data => renderChatMessage(data, container));
-    }
-    scrollToBottom(container);
-  }, err => {
-    container.innerHTML = `<div class="feed-loading">Error: ${err.message}</div>`;
-  });
-
-  wireTeamChatForm();
-}
-
-function wireTeamChatForm() {
-  const form = document.getElementById('team-chat-form');
-  const input = document.getElementById('team-chat-input');
-  if (form.dataset.wired) return;
-  form.dataset.wired = '1';
-
-  document.getElementById('team-chat-media-input').addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    showMediaPreview('team', file, document.getElementById('team-chat-media-preview'));
-    e.target.value = '';
-  });
-
-  form.addEventListener('submit', async e => {
-    e.preventDefault();
-    if (!activeTeamId) return;
-    const text = input.value.trim();
-    const hasMedia = pendingMedia.has('team');
-    if (!text && !hasMedia) return;
-    input.value = '';
-    const sendBtn = form.querySelector('button[type="submit"]');
-    try {
-      let media = {};
-      if (hasMedia) {
-        sendBtn.disabled = true;
-        media = await uploadPendingMedia('team', `chatMedia/team/${activeTeamId}`);
-        clearMediaPreview('team', document.getElementById('team-chat-media-preview'));
-      }
-      await sendChatMessage(['teams', activeTeamId, 'messages'], text, media);
-    } catch (err) {
-      toast('Failed to send: ' + err.message, 'error');
-    } finally {
-      sendBtn.disabled = false;
-    }
-  });
-}
-
-
-// ─── USER ACTION MENU (Add Friend / Chat / Invite to Team / Report / Block) ──
-// Triggered by clicking any ".user-chip" rendered via userChip(). Shows a
-// small popover anchored under the chip with social/moderation actions.
-
-let menuUid = null;
-let menuUsername = null;
-let menuAnchor = null;
-
-function closeUserMenu() {
-  document.getElementById('user-menu')?.classList.add('hidden');
-  menuUid = null;
-  menuUsername = null;
-  menuAnchor = null;
-}
-
-// Positions the (already-rendered) menu under the anchor element, flipping
-// above/left if it would overflow the viewport.
-function positionUserMenu(anchorEl) {
-  const menu = document.getElementById('user-menu');
-  menu.classList.remove('hidden');
-  menu.style.visibility = 'hidden';
-
-  const rect = anchorEl.getBoundingClientRect();
-  const menuRect = menu.getBoundingClientRect();
-
-  let top = rect.bottom + window.scrollY + 6;
-  let left = rect.left + window.scrollX;
-
-  const maxLeft = window.scrollX + window.innerWidth - menuRect.width - 8;
-  const maxTop = window.scrollY + window.innerHeight - menuRect.height - 8;
-
-  if (left > maxLeft) left = Math.max(8, maxLeft);
-  if (top > maxTop) top = Math.max(8, rect.top + window.scrollY - menuRect.height - 6);
-
-  menu.style.left = `${left}px`;
-  menu.style.top = `${top}px`;
-  menu.style.visibility = '';
-}
-
-async function openUserMenu(uid, username, anchorEl) {
-  if (!currentUser || !uid || uid === currentUser.uid) return;
-  menuUid = uid;
-  menuUsername = username;
-  menuAnchor = anchorEl;
-
-  const data = await getUserData(uid, { fresh: true });
-
-  document.getElementById('um-avatar').src = avatarUrl(data || { username });
-  document.getElementById('um-username').textContent = username;
-  document.getElementById('um-elo').textContent = data ? `${data.elo || 1000} ELO · ${getRank(data.elo || 1000).label}` : '';
-
-  renderMainMenuItems();
-  positionUserMenu(anchorEl);
-}
-
-// Draws the main "Add Friend / Chat / Invite to Team Chat / Report / Block" list.
-function renderMainMenuItems() {
-  const itemsEl = document.getElementById('user-menu-items');
-  const isFriend = (currentProfile?.friends || []).includes(menuUid);
-  const isBlocked = (currentProfile?.blocked || []).includes(menuUid);
-
-  itemsEl.innerHTML = `
-    <button class="user-menu-item" data-act="friend">${isFriend ? '✅ Friends — Remove' : '➕ Add Friend'}</button>
-    <button class="user-menu-item" data-act="chat">💬 Chat</button>
-    <button class="user-menu-item" data-act="invite">🛡️ Invite to Team Chat</button>
-    <div class="user-menu-divider"></div>
-    <button class="user-menu-item danger" data-act="report">🚩 Report</button>
-    <button class="user-menu-item danger" data-act="block">${isBlocked ? '✅ Unblock User' : '⛔ Block User'}</button>
-  `;
-
-  itemsEl.querySelector('[data-act="friend"]').addEventListener('click', toggleFriend);
-  itemsEl.querySelector('[data-act="chat"]').addEventListener('click', startChatWithMenuUser);
-  itemsEl.querySelector('[data-act="invite"]').addEventListener('click', showTeamInviteSubmenu);
-  itemsEl.querySelector('[data-act="report"]').addEventListener('click', reportMenuUser);
-  itemsEl.querySelector('[data-act="block"]').addEventListener('click', toggleBlock);
-
-  if (menuAnchor) positionUserMenu(menuAnchor);
-}
-
-async function toggleFriend() {
-  const uid = menuUid, username = menuUsername;
-  const isFriend = (currentProfile.friends || []).includes(uid);
-  closeUserMenu();
-  try {
-    await updateDoc(doc(db, 'users', currentUser.uid), {
-      friends: isFriend ? arrayRemove(uid) : arrayUnion(uid)
-    });
-    await refreshCurrentProfile();
-    toast(isFriend ? `Removed ${username} from friends.` : `${username} added as a friend! 🎉`, 'success');
-  } catch (e) {
-    toast('Failed: ' + e.message, 'error');
-  }
-}
-
-async function toggleBlock() {
-  const uid = menuUid, username = menuUsername;
-  const isBlocked = (currentProfile.blocked || []).includes(uid);
-  if (!isBlocked && !confirm(`Block ${username}? You won't see their posts or messages, and they won't be able to message you.`)) {
-    closeUserMenu();
-    return;
-  }
-  closeUserMenu();
-  try {
-    const updates = { blocked: isBlocked ? arrayRemove(uid) : arrayUnion(uid) };
-    if (!isBlocked && (currentProfile.friends || []).includes(uid)) {
-      updates.friends = arrayRemove(uid);
-    }
-    await updateDoc(doc(db, 'users', currentUser.uid), updates);
-    await refreshCurrentProfile();
-    toast(isBlocked ? `Unblocked ${username}.` : `Blocked ${username}.`, 'success');
-    loadFeed();
-  } catch (e) {
-    toast('Failed: ' + e.message, 'error');
-  }
-}
-
-async function reportMenuUser() {
-  const uid = menuUid, username = menuUsername;
-  closeUserMenu();
-  const reason = prompt(`Report ${username} — briefly describe the issue:`);
-  if (reason === null) return;
-  if (!reason.trim()) return toast('Report cancelled — no reason given.', 'error');
-  try {
-    await addDoc(collection(db, 'reports'), {
-      reportedUid: uid,
-      reportedUsername: username,
-      reporterUid: currentUser.uid,
-      reporterUsername: currentProfile.username,
-      reason: reason.trim(),
-      status: 'open',
-      createdAt: serverTimestamp()
-    });
-    toast(`${username} has been reported. Our team will review it.`, 'success');
-  } catch (e) {
-    toast('Failed to submit report: ' + e.message, 'error');
-  }
-}
-
-function startChatWithMenuUser() {
-  const uid = menuUid, username = menuUsername;
-  const data = usersCache.get(uid);
-  closeUserMenu();
-  showPage('chat');
-  const dmTab = document.querySelector('.chat-tab[data-chat-tab="dms"]');
-  if (dmTab && !dmTab.classList.contains('active')) dmTab.click();
-  openDmThread(uid, username, data);
-}
-
-// Replaces the menu body with a list of the current user's teams so they can
-// add `menuUid` as a member (giving them access to that team's chat).
-async function showTeamInviteSubmenu() {
-  const uid = menuUid, username = menuUsername;
-  const itemsEl = document.getElementById('user-menu-items');
-  itemsEl.innerHTML = '<div class="user-menu-empty">Loading your teams…</div>';
-  positionUserMenu(menuAnchor);
-
-  try {
-    const q = query(collection(db, 'teams'), where('members', 'array-contains', currentUser.uid), limit(20));
-    const snap = await getDocs(q);
-
-    if (snap.empty) {
-      itemsEl.innerHTML = `<div class="user-menu-empty">You're not in any teams yet.</div><button class="user-menu-item" data-act="back">← Back</button>`;
-    } else {
-      const rows = snap.docs.map(d => ({ id: d.id, t: d.data() }));
-      itemsEl.innerHTML = rows.map(({ id, t }) => {
-        const already = (t.members || []).includes(uid);
-        return `<button class="user-menu-item" data-tid="${id}" ${already ? 'disabled' : ''}>${already ? '✅' : '🛡️'} [${escHtml(t.tag)}] ${escHtml(t.name)}${already ? ' (already in)' : ''}</button>`;
-      }).join('') + `<div class="user-menu-divider"></div><button class="user-menu-item" data-act="back">← Back</button>`;
-
-      rows.forEach(({ id, t }) => {
-        if (!(t.members || []).includes(uid)) {
-          itemsEl.querySelector(`[data-tid="${id}"]`).addEventListener('click', () => inviteUserToTeam(id, t, uid, username));
-        }
-      });
-    }
-    itemsEl.querySelector('[data-act="back"]')?.addEventListener('click', renderMainMenuItems);
-  } catch (e) {
-    itemsEl.innerHTML = `<div class="user-menu-empty">Error: ${e.message}</div><button class="user-menu-item" data-act="back">← Back</button>`;
-    itemsEl.querySelector('[data-act="back"]')?.addEventListener('click', renderMainMenuItems);
-  }
-  positionUserMenu(menuAnchor);
-}
-
-async function inviteUserToTeam(teamId, teamData, uid, username) {
-  try {
-    await updateDoc(doc(db, 'teams', teamId), {
-      members: arrayUnion(uid),
-      memberCount: increment(1)
-    });
-    toast(`Added ${username} to [${teamData.tag}] ${teamData.name}! 🛡️`, 'success');
-  } catch (e) {
-    toast('Failed: ' + e.message, 'error');
-  }
-  closeUserMenu();
-}
-
-
+// ─── UTILS ───────────────────────────────────────────────────────────────────
 function escHtml(str = '') {
   return String(str)
     .replace(/&/g, '&amp;')

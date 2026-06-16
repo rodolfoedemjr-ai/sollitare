@@ -4,10 +4,11 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ICCT Gaming Hub — Compete. Rise. Dominate.</title>
+    <title>FragNet — Compete. Rise. Dominate.</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css" media="screen and (min-width: 721px)" />
+    <link rel="stylesheet" href="mobile.css" media="screen and (max-width: 720px)" />
 </head>
 
 <body>
@@ -29,7 +30,7 @@
                 <button id="btn-login" type="button" class="btn-primary">LOG IN</button>
                 <button id="btn-google" type="button" class="btn-google">
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" /> Continue with Google
-      </button>
+    </button>
                 <p class="auth-switch">No account? <a href="#" id="go-register">Register now</a></p>
                 <div id="login-error" class="auth-error"></div>
             </div>
@@ -75,7 +76,7 @@
                     <span class="rank-badge" id="sidebar-rank-badge">S1</span>
                 </div>
                 <div>
-                    <div class="sidebar-username" id="sidebar-username">— <span class="status-dot online" id="sidebar-status-dot" title="Online"></span></div>
+                    <div class="sidebar-username" id="sidebar-username">—</div>
                     <div class="sidebar-elo" id="sidebar-elo">0 ELO</div>
                 </div>
             </div>
@@ -92,9 +93,6 @@
                 </a>
                 <a href="#" class="nav-item" data-page="teams">
                     <span class="nav-icon">🛡️</span> Teams
-                </a>
-                <a href="#" class="nav-item" data-page="chat">
-                    <span class="nav-icon">💬</span> Chat
                 </a>
                 <a href="#" class="nav-item" data-page="profile">
                     <span class="nav-icon">👤</span> Profile
@@ -117,11 +115,6 @@
                 <!-- New post composer -->
                 <div class="post-composer" id="post-composer" style="display:none">
                     <textarea id="post-content" placeholder="Share an update, project, win, or thought…" maxlength="500"></textarea>
-                    <div id="post-media-preview" class="media-preview" style="display:none">
-                        <img id="post-media-preview-img" style="display:none" />
-                        <video id="post-media-preview-video" style="display:none" controls></video>
-                        <button type="button" id="post-media-remove" class="media-remove-btn">✕ Remove</button>
-                    </div>
                     <div class="composer-row">
                         <select id="post-game-tag">
             <option value="">Tag a category…</option>
@@ -143,8 +136,6 @@
             <option value="recruit">📢 Recruiting</option>
             <option value="rant">💢 Rant</option>
           </select>
-                        <label class="btn-ghost sm attach-btn" for="post-media-input" title="Attach image or video">📎</label>
-                        <input type="file" id="post-media-input" accept="image/*,video/*" style="display:none" />
                         <button id="btn-post-submit" class="btn-primary sm">POST</button>
                     </div>
                 </div>
@@ -249,85 +240,6 @@
                 </div>
             </section>
 
-            <!-- ── CHAT PAGE ── -->
-            <section id="page-chat" class="page">
-                <div class="page-header">
-                    <h1>CHAT</h1>
-                </div>
-
-                <div class="chat-tabs">
-                    <button class="chat-tab active" data-chat-tab="global">🌐 Global</button>
-                    <button class="chat-tab" data-chat-tab="dms">✉️ Direct Messages</button>
-                    <button class="chat-tab" data-chat-tab="team">🛡️ Team Chat</button>
-                </div>
-
-                <!-- GLOBAL CHAT -->
-                <div class="chat-panel active" id="chat-panel-global">
-                    <div class="chat-window">
-                        <div class="chat-messages" id="global-chat-messages">
-                            <div class="feed-loading">Loading chat…</div>
-                        </div>
-                        <div id="global-chat-media-preview" class="media-preview" style="display:none"></div>
-                        <form class="chat-input-row" id="global-chat-form">
-                            <label class="btn-ghost sm attach-btn" for="global-chat-media-input" title="Attach image or video">📎</label>
-                            <input type="file" id="global-chat-media-input" accept="image/*,video/*" style="display:none" />
-                            <input type="text" id="global-chat-input" placeholder="Message everyone…" maxlength="500" autocomplete="off" />
-                            <button type="submit" class="btn-primary sm">Send</button>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- DMs -->
-                <div class="chat-panel" id="chat-panel-dms">
-                    <div class="dm-layout">
-                        <div class="dm-sidebar">
-                            <input type="text" id="dm-user-search" placeholder="Search players to message…" />
-                            <div id="dm-search-results" class="dm-search-results"></div>
-                            <div class="dm-thread-list" id="dm-thread-list">
-                                <div class="feed-loading">Loading conversations…</div>
-                            </div>
-                        </div>
-                        <div class="chat-window dm-window">
-                            <div class="dm-header" id="dm-header">
-                                <span class="dm-header-placeholder">Select a conversation or search for a player to start chatting.</span>
-                            </div>
-                            <div class="chat-messages" id="dm-chat-messages"></div>
-                            <div id="dm-chat-media-preview" class="media-preview" style="display:none"></div>
-                            <form class="chat-input-row" id="dm-chat-form" style="display:none">
-                                <label class="btn-ghost sm attach-btn" for="dm-chat-media-input" title="Attach image or video">📎</label>
-                                <input type="file" id="dm-chat-media-input" accept="image/*,video/*" style="display:none" />
-                                <input type="text" id="dm-chat-input" placeholder="Type a message…" maxlength="500" autocomplete="off" />
-                                <button type="submit" class="btn-primary sm">Send</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TEAM CHAT -->
-                <div class="chat-panel" id="chat-panel-team">
-                    <div class="dm-layout">
-                        <div class="dm-sidebar">
-                            <div id="team-chat-list" class="dm-thread-list">
-                                <div class="feed-loading">Loading your teams…</div>
-                            </div>
-                        </div>
-                        <div class="chat-window dm-window">
-                            <div class="dm-header" id="team-chat-header">
-                                <span class="dm-header-placeholder">Select a team to open its chat.</span>
-                            </div>
-                            <div class="chat-messages" id="team-chat-messages"></div>
-                            <div id="team-chat-media-preview" class="media-preview" style="display:none"></div>
-                            <form class="chat-input-row" id="team-chat-form" style="display:none">
-                                <label class="btn-ghost sm attach-btn" for="team-chat-media-input" title="Attach image or video">📎</label>
-                                <input type="file" id="team-chat-media-input" accept="image/*,video/*" style="display:none" />
-                                <input type="text" id="team-chat-input" placeholder="Message your team…" maxlength="500" autocomplete="off" />
-                                <button type="submit" class="btn-primary sm">Send</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
             <!-- ── PROFILE PAGE ── -->
             <section id="page-profile" class="page">
                 <div class="profile-hero">
@@ -410,18 +322,6 @@
             </div>
         </aside>
 
-    </div>
-
-    <!-- USER ACTION MENU (Add Friend / Chat / Invite / Report / Block) -->
-    <div id="user-menu" class="user-menu hidden">
-        <div class="user-menu-header">
-            <img id="um-avatar" src="" alt="" />
-            <div>
-                <div class="um-username" id="um-username">—</div>
-                <div class="um-elo" id="um-elo"></div>
-            </div>
-        </div>
-        <div class="user-menu-items" id="user-menu-items"></div>
     </div>
 
     <!-- TOAST -->

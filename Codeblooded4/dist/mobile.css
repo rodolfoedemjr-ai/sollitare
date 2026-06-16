@@ -1,0 +1,70 @@
+/* Mobile-specific overrides for screens up to 720px */
+
+:root {
+    --mobile-padding: 14px;
+}
+
+/* Hide right panel on mobile */
+.right-panel { display: none; }
+
+/* Stack layout */
+.app { grid-template-columns: 1fr; }
+
+/* Bottom navigation - transform sidebar into compact bottom bar */
+.sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: auto;
+    width: 100%;
+    flex-direction: row;
+    padding: 8px 12px;
+    z-index: 100;
+    border-right: none;
+    border-top: 1px solid var(--border);
+    background: var(--bg2);
+}
+
+.sidebar-logo,
+.sidebar-user,
+.btn-logout { display: none; }
+
+.sidebar-nav {
+    flex-direction: row;
+    gap: 0;
+    flex: 1;
+    justify-content: space-around;
+}
+
+.nav-item {
+    flex-direction: column;
+    gap: 2px;
+    font-size: 10px;
+    padding: 6px 8px;
+}
+
+.nav-item.active {
+    border-left: none;
+    border-bottom: 2px solid var(--accent);
+}
+
+.nav-icon { font-size: 20px; }
+
+.main-content {
+    padding: 16px 14px 80px;
+    max-height: none;
+}
+
+/* Make lists single column */
+.teams-list { grid-template-columns: 1fr; }
+.form-grid { grid-template-columns: 1fr; }
+
+/* Profile hero stacks vertically */
+.profile-hero { flex-direction: column; align-items: flex-start; }
+
+/* Auth card margins for small screens */
+.auth-card { padding: 28px 20px; margin: 16px; }
+
+/* Ensure toast appears above bottom nav */
+.toast { right: 14px; left: 14px; bottom: 80px; }
