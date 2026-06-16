@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Solitaire Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel='stylesheet' href='https://bfa.github.io/solitaire-js/css/bootstrap.min.css'>
+    <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+
+    <div id="title-screen" class="title-screen visible">
+        <div class="title-content">
+            <img class="title-logo" src="./cards/classic/Splash_Screen.png" alt="CODEBLOODED logo">
+            <h1>Solitaire</h1>
+            <h2>By CODEBLOODED</h2>
+            <p>Click Anywhere to Play</p>
+        </div>
+    </div>
+
+    <div id="parallax-bg-layer"></div>
+
+    <div id="victory-canvas-holder"></div>
+
+    <div class="container" id="game-container" style="display: none;">
+
+        <div id="score">
+            <div class="timer">
+                <button id="play-pause">
+                    <i id="play">Play</i>
+                    <i id="pause" style="display:none;">Pause</i>
+                </button>
+                <label>Timer:</label>
+                <span>00:00</span>
+            </div>
+            <div class="move-count" data-moves="0">
+                <label>Moves:</label>
+                <span>0</span>
+            </div>
+            <div class="score" data-score="0">
+                <label>Score:</label>
+                <span>0</span>
+            </div>
+            <div class="header-buttons">
+                <button id="hint-btn" class="hint-btn">Hint</button>
+                <button id="undo-btn" class="undo-btn" disabled>Undo</button>
+                <button id="auto-win" class="auto-win-btn">Auto Win</button>
+            </div>
+        </div>
+
+        <div id="table-scale-wrapper">
+            <div id="table">
+                <div class="upper-row">
+                    <div id="stock" class="pile" data-pile="stock" data-empty="false">
+                        <div class="reload-icon"></div>
+                        <ul></ul>
+                    </div>
+                    <div id="waste" class="pile" data-pile="waste">
+                        <ul></ul>
+                    </div>
+                    <div id="fnd">
+                        <div class="pile" data-pile="spades"><ul></ul></div>
+                        <div class="pile" data-pile="hearts"><ul></ul></div>
+                        <div class="pile" data-pile="diamonds"><ul></ul></div>
+                        <div class="pile" data-pile="clubs"><ul></ul></div>
+                    </div>
+                </div>
+
+                <div class="lower-row">
+                    <ul id="tab">
+                        <li class="pile" data-pile="tab-1"><ul></ul></li>
+                        <li class="pile" data-pile="tab-2"><ul></ul></li>
+                        <li class="pile" data-pile="tab-3"><ul></ul></li>
+                        <li class="pile" data-pile="tab-4"><ul></ul></li>
+                        <li class="pile" data-pile="tab-5"><ul></ul></li>
+                        <li class="pile" data-pile="tab-6"><ul></ul></li>
+                        <li class="pile" data-pile="tab-7"><ul></ul></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <ul class="templates">
+        <li data-rank="2"><div class="card-inner"><div class="corner top"><span class="rank">2</span><span class="suit"></span></div><div class="corner bottom"><span class="rank">2</span><span class="suit"></span></div></div></li>
+        <li data-rank="3"><div class="card-inner"><div class="corner top"><span class="rank">3</span><span class="suit"></span></div><div class="corner bottom"><span class="rank">3</span><span class="suit"></span></div></div></li>
+        <li data-rank="4"><div class="card-inner"><div class="corner top"><span class="rank">4</span><span class="suit"></span></div><div class="corner bottom"><span class="rank">4</span><span class="suit"></span></div></div></li>
+        <li data-rank="5"><div class="card-inner"><div class="corner top"><span class="rank">5</span><span class="suit"></span></div><div class="corner bottom"><span class="rank">5</span><span class="suit"></span></div></div></li>
+        <li data-rank="6"><div class="card-inner"><div class="corner top"><span class="rank">6</span><span class="suit"></span></div><div class="corner bottom"><span class="rank">6</span><span class="suit"></span></div></div></li>
+        <li data-rank="7"><div class="card-inner"><div class="corner top"><span class="rank">7</span><span class="suit"></span></div><div class="corner bottom"><span class="rank">7</span><span class="suit"></span></div></div></li>
+        <li data-rank="8"><div class="card-inner"><div class="corner top"><span class="rank">8</span><span class="suit"></span></div><div class="corner bottom"><span class="rank">8</span><span class="suit"></span></div></div></li>
+        <li data-rank="9"><div class="card-inner"><div class="corner top"><span class="rank">9</span><span class="suit"></span></div><div class="corner bottom"><span class="rank">9</span><span class="suit"></span></div></div></li>
+        <li data-rank="10"><div class="card-inner"><div class="corner top"><span class="rank">10</span><span class="suit"></span></div><div class="corner bottom"><span class="rank">10</span><span class="suit"></span></div></div></li>
+        <li data-rank="J"><div class="jack {{suit}}"><div class="corner top"><span class="rank">J</span><span class="suit"></span></div><span class="face middle_center"></span><div class="corner bottom"><span class="rank">J</span><span class="suit"></span></div></div></li>
+        <li data-rank="Q"><div class="queen {{suit}}"><div class="corner top"><span class="rank">Q</span><span class="suit"></span></div><span class="face middle_center"></span><div class="corner bottom"><span class="rank">Q</span><span class="suit"></span></div></div></li>
+        <li data-rank="K"><div class="king {{suit}}"><div class="corner top"><span class="rank">K</span><span class="suit"></span></div><span class="face middle_center"></span><div class="corner bottom"><span class="rank">K</span><span class="suit"></span></div></div></li>
+        <li data-rank="A"><div class="ace {{suit}}"><div class="corner top"><span class="rank">A</span><span class="suit"></span></div><span class="suit middle_center"></span><div class="corner bottom"><span class="rank">A</span><span class="suit"></span></div></div></li>
+    </ul>
+
+    <script src="./script.js"></script>
+</body>
+</html>
