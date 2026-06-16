@@ -160,6 +160,7 @@ function showPage(id) {
     if (id === 'matches') loadMatches();
     if (id === 'teams') loadTeams();
     if (id === 'profile') loadProfile();
+    if (id === 'messages') loadDMPage();
     if (id === 'leaderboard') loadRightPanel();
 }
 
@@ -816,7 +817,8 @@ async function handleUserPopupAction(action, uid, username) {
   closeUserPopup();
   switch (action) {
     case 'chat':
-      toast(`💬 Chat with ${username} — DM feature coming soon!`, '');
+      showPage('messages');
+      openDMWith(uid, username);
       break;
 
     case 'friend':
@@ -1331,6 +1333,279 @@ document.getElementById('avatar-upload').addEventListener('change', async e => {
     e.target.value = '';
   }
 });
+
+// ─── DIRECT MESSAGES ─────────────────────────────────────────────────────────
+// Firestore schema:
+//   conversations/{convId}  { members:[uid,uid], memberNames:{uid:name}, memberPhotos:{uid:url}, lastMessage, lastAt, unread:{uid:count} }
+//   conversations/{convId}/messages/{msgId}  { senderUid, text, createdAt }
+
+let dmUnsubMessages  = null;   // active messages listener
+let dmUnsubConvList  = null;   // conversation list listener
+let activeConvId     = null;   // currently open conversation
+
+// Build a stable, deterministic conversation ID from two UIDs
+function convId(uid1, uid2) {
+    return [uid1, uid2].sort().join('_');
+}
+
+// ── Load the DM page ─────────────────────────────────────────────────────────
+function loadDMPage() {
+    loadConversationList();
+    clearUnreadBadge();
+}
+
+// ── Conversation list (left panel) ───────────────────────────────────────────
+function loadConversationList() {
+    if (dmUnsubConvList) { dmUnsubConvList(); dmUnsubConvList = null; }
+    const el = document.getElementById('dm-conversations');
+    if (!el) return;
+
+    const q = query(
+        collection(db, 'conversations'),
+        where('members', 'array-contains', currentUser.uid),
+        orderBy('lastAt', 'desc'),
+        limit(50)
+    );
+
+    dmUnsubConvList = onSnapshot(q, snap => {
+        el.innerHTML = '';
+        if (snap.empty) {
+            el.innerHTML = '<div class="dm-no-convs">No conversations yet. Start one from a user\'s profile!</div>';
+            return;
+        }
+        snap.forEach(d => {
+            const data  = d.data();
+            const otherId = data.members.find(m => m !== currentUser.uid);
+            const name  = data.memberNames?.[otherId] || 'Unknown';
+            const photo = data.memberPhotos?.[otherId] || '';
+            const unread = data.unread?.[currentUser.uid] || 0;
+            const lastMsg = data.lastMessage ? escHtml(data.lastMessage).slice(0, 50) : '';
+            const ts = data.lastAt ? timeAgo(data.lastAt) : '';
+
+            const row = document.createElement('div');
+            row.className = `dm-conv-row${activeConvId === d.id ? ' active' : ''}`;
+            row.dataset.convId  = d.id;
+            row.dataset.otherId = otherId;
+            row.dataset.otherName = name;
+            row.innerHTML = `
+                <div class="dm-conv-avatar-wrap">
+                    <img class="dm-conv-avatar" src="${photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1f2433&color=00e5ff&bold=true&size=60`}" />
+                    ${unread > 0 ? `<span class="dm-unread-dot">${unread}</span>` : ''}
+                </div>
+                <div class="dm-conv-info">
+                    <div class="dm-conv-name">${escHtml(name)}</div>
+                    <div class="dm-conv-last">${lastMsg || '<em>No messages yet</em>'}</div>
+                </div>
+                <div class="dm-conv-ts">${ts}</div>`;
+            row.addEventListener('click', () => openConversation(d.id, otherId, name, photo));
+            el.appendChild(row);
+        });
+
+        // Update global unread badge
+        updateUnreadBadge(snap);
+    }, err => { console.error('DM list error', err); });
+}
+
+function updateUnreadBadge(snap) {
+    let total = 0;
+    snap.forEach(d => { total += (d.data().unread?.[currentUser.uid] || 0); });
+    const badge = document.getElementById('msg-badge');
+    if (!badge) return;
+    if (total > 0) { badge.textContent = total > 9 ? '9+' : total; badge.classList.remove('hidden'); }
+    else           { badge.classList.add('hidden'); }
+}
+
+function clearUnreadBadge() {
+    const badge = document.getElementById('msg-badge');
+    if (badge) { badge.textContent = ''; badge.classList.add('hidden'); }
+}
+
+// ── Open a conversation ───────────────────────────────────────────────────────
+async function openConversation(cid, otherId, otherName, otherPhoto) {
+    // Stop previous messages listener
+    if (dmUnsubMessages) { dmUnsubMessages(); dmUnsubMessages = null; }
+    activeConvId = cid;
+
+    // Highlight active row
+    document.querySelectorAll('.dm-conv-row').forEach(r =>
+        r.classList.toggle('active', r.dataset.convId === cid));
+
+    // Show chat panel
+    const emptyState = document.getElementById('dm-empty-state');
+    const chatInner  = document.getElementById('dm-chat-inner');
+    if (emptyState) emptyState.style.display = 'none';
+    if (chatInner)  chatInner.style.display  = 'flex';
+
+    // On mobile: switch to chat panel
+    document.getElementById('dm-list-panel')?.classList.add('dm-mobile-hidden');
+    document.getElementById('dm-chat-panel')?.classList.add('dm-mobile-visible');
+
+    // Chat header
+    const header = document.getElementById('dm-chat-header');
+    if (header) {
+        header.innerHTML = `
+            <button class="dm-back-btn" id="dm-back-btn">←</button>
+            <img class="dm-chat-avatar" src="${otherPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(otherName)}&background=1f2433&color=00e5ff&bold=true&size=60`}" />
+            <div class="dm-chat-name">${escHtml(otherName)}</div>`;
+        document.getElementById('dm-back-btn')?.addEventListener('click', () => {
+            document.getElementById('dm-list-panel')?.classList.remove('dm-mobile-hidden');
+            document.getElementById('dm-chat-panel')?.classList.remove('dm-mobile-visible');
+        });
+    }
+
+    // Mark as read
+    try {
+        await updateDoc(doc(db, 'conversations', cid), {
+            [`unread.${currentUser.uid}`]: 0
+        });
+    } catch(_) {}
+
+    // Wire send button + enter key
+    const sendBtn = document.getElementById('dm-send-btn');
+    const input   = document.getElementById('dm-input');
+    const newSend = sendBtn.cloneNode(true);
+    sendBtn.replaceWith(newSend);
+    newSend.addEventListener('click', () => sendDMMessage(cid, otherId, otherName, otherPhoto));
+    input?.addEventListener('keydown', e => { if (e.key === 'Enter') sendDMMessage(cid, otherId, otherName, otherPhoto); });
+
+    // Real-time messages listener
+    const msgList = document.getElementById('dm-messages-list');
+    msgList.innerHTML = '<div class="feed-loading">Loading…</div>';
+
+    const q = query(
+        collection(db, 'conversations', cid, 'messages'),
+        orderBy('createdAt', 'asc'),
+        limit(200)
+    );
+
+    dmUnsubMessages = onSnapshot(q, snap => {
+        msgList.innerHTML = '';
+        snap.forEach(d => msgList.appendChild(buildDMBubble(d.data())));
+        msgList.scrollTop = msgList.scrollHeight;
+    }, err => { msgList.innerHTML = `<div class="feed-loading">Error: ${err.message}</div>`; });
+}
+
+// ── Start/open a DM with a user (from popup) ──────────────────────────────────
+async function openDMWith(uid, username) {
+    const cid = convId(currentUser.uid, uid);
+    const convRef = doc(db, 'conversations', cid);
+
+    // Fetch their photo
+    let otherPhoto = '';
+    try {
+        const snap = await getDoc(doc(db, 'users', uid));
+        if (snap.exists()) otherPhoto = avatarUrl(snap.data());
+    } catch(_) {}
+
+    // Ensure conversation doc exists
+    try {
+        const convSnap = await getDoc(convRef);
+        if (!convSnap.exists()) {
+            await setDoc(convRef, {
+                members: [currentUser.uid, uid],
+                memberNames: {
+                    [currentUser.uid]: currentProfile.username,
+                    [uid]: username
+                },
+                memberPhotos: {
+                    [currentUser.uid]: currentProfile.photoURL || '',
+                    [uid]: otherPhoto
+                },
+                lastMessage: '',
+                lastAt: serverTimestamp(),
+                unread: { [currentUser.uid]: 0, [uid]: 0 }
+            });
+        }
+    } catch(e) { toast('Could not open chat: ' + e.message, 'error'); return; }
+
+    // Load the conversation list first so the row appears
+    loadConversationList();
+    // Small delay to let the list render, then open
+    setTimeout(() => openConversation(cid, uid, username, otherPhoto), 300);
+}
+
+// ── Send a message ────────────────────────────────────────────────────────────
+async function sendDMMessage(cid, otherId, otherName, otherPhoto) {
+    const input = document.getElementById('dm-input');
+    const text  = input?.value.trim();
+    if (!text) return;
+    input.value = '';
+
+    try {
+        await addDoc(collection(db, 'conversations', cid, 'messages'), {
+            senderUid: currentUser.uid,
+            senderName: currentProfile.username,
+            text,
+            createdAt: serverTimestamp()
+        });
+        await updateDoc(doc(db, 'conversations', cid), {
+            lastMessage: text,
+            lastAt: serverTimestamp(),
+            [`unread.${otherId}`]: increment(1)
+        });
+    } catch(e) { toast('Could not send message: ' + e.message, 'error'); }
+}
+
+// ── Build a message bubble ────────────────────────────────────────────────────
+function buildDMBubble(data) {
+    const isMine = data.senderUid === currentUser.uid;
+    const wrap = document.createElement('div');
+    wrap.className = `dm-bubble-wrap ${isMine ? 'mine' : 'theirs'}`;
+    wrap.innerHTML = `
+        <div class="dm-bubble ${isMine ? 'dm-bubble-mine' : 'dm-bubble-theirs'}">
+            <div class="dm-bubble-text">${escHtml(data.text)}</div>
+            <div class="dm-bubble-ts">${timeAgo(data.createdAt)}</div>
+        </div>`;
+    return wrap;
+}
+
+// ── DM search — find users to start a chat ───────────────────────────────────
+let dmSearchTimeout = null;
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('dm-search')?.addEventListener('input', e => {
+        clearTimeout(dmSearchTimeout);
+        const q = e.target.value.trim();
+        if (!q) { loadConversationList(); return; }
+        dmSearchTimeout = setTimeout(() => searchUsersForDM(q), 300);
+    });
+    document.getElementById('dm-send-btn')?.addEventListener('click', () => {});
+});
+
+async function searchUsersForDM(query_str) {
+    const el = document.getElementById('dm-conversations');
+    el.innerHTML = '<div class="feed-loading">Searching…</div>';
+    try {
+        // Basic prefix search on username
+        const snap = await getDocs(
+            query(collection(db, 'users'),
+                  orderBy('username'),
+                  where('username', '>=', query_str),
+                  where('username', '<=', query_str + '\uf8ff'),
+                  limit(10))
+        );
+        el.innerHTML = '';
+        if (snap.empty) { el.innerHTML = '<div class="dm-no-convs">No users found.</div>'; return; }
+        snap.forEach(d => {
+            if (d.id === currentUser.uid) return;
+            const data = d.data();
+            const row = document.createElement('div');
+            row.className = 'dm-conv-row dm-search-row';
+            row.innerHTML = `
+                <img class="dm-conv-avatar" src="${avatarUrl(data)}" />
+                <div class="dm-conv-info">
+                    <div class="dm-conv-name">${escHtml(data.username)}</div>
+                    <div class="dm-conv-last">${escHtml(data.favGame || '')}</div>
+                </div>
+                <span class="dm-start-badge">Chat</span>`;
+            row.addEventListener('click', () => {
+                document.getElementById('dm-search').value = '';
+                showPage('messages');
+                openDMWith(d.id, data.username);
+            });
+            el.appendChild(row);
+        });
+    } catch(e) { el.innerHTML = `<div class="feed-loading">Error: ${e.message}</div>`; }
+}
 
 // ─── RIGHT PANEL ─────────────────────────────────────────────────────────────
 async function loadRightPanel() {
