@@ -1336,8 +1336,8 @@ document.getElementById('avatar-upload').addEventListener('change', async e => {
 
 // ─── DIRECT MESSAGES ─────────────────────────────────────────────────────────
 // Firestore schema:
-//   conversations/{convId}  { members:[uid,uid], memberNames:{uid:name}, memberPhotos:{uid:url}, lastMessage, lastAt, unread:{uid:count} }
-//   conversations/{convId}/messages/{msgId}  { senderUid, text, createdAt }
+//   dmThreads/{threadId}  { participants:[uid,uid], participantNames:{uid:name}, participantPhotos:{uid:url}, lastMessage, lastMessageAt, lastSenderId }
+//   dmThreads/{threadId}/messages/{messageId}  { senderUid, senderName, text, createdAt }
 
 let dmUnsubMessages  = null;   // active messages listener
 let dmUnsubConvList  = null;   // conversation list listener
@@ -1361,9 +1361,9 @@ function loadConversationList() {
     if (!el) return;
 
     const q = query(
-        collection(db, 'conversations'),
-        where('members', 'array-contains', currentUser.uid),
-        orderBy('lastAt', 'desc'),
+        collection(db, 'dmThreads'),
+        where('participants', 'array-contains', currentUser.uid),
+        orderBy('lastMessageAt', 'desc'),
         limit(50)
     );
 
@@ -1375,12 +1375,12 @@ function loadConversationList() {
         }
         snap.forEach(d => {
             const data  = d.data();
-            const otherId = data.members.find(m => m !== currentUser.uid);
-            const name  = data.memberNames?.[otherId] || 'Unknown';
-            const photo = data.memberPhotos?.[otherId] || '';
+            const otherId = data.participants.find(p => p !== currentUser.uid);
+            const name  = data.participantNames?.[otherId] || 'Unknown';
+            const photo = data.participantPhotos?.[otherId] || '';
             const unread = data.unread?.[currentUser.uid] || 0;
             const lastMsg = data.lastMessage ? escHtml(data.lastMessage).slice(0, 50) : '';
-            const ts = data.lastAt ? timeAgo(data.lastAt) : '';
+            const ts = data.lastMessageAt ? timeAgo(data.lastMessageAt) : '';
 
             const row = document.createElement('div');
             row.className = `dm-conv-row${activeConvId === d.id ? ' active' : ''}`;
@@ -1453,12 +1453,8 @@ async function openConversation(cid, otherId, otherName, otherPhoto) {
         });
     }
 
-    // Mark as read
-    try {
-        await updateDoc(doc(db, 'conversations', cid), {
-            [`unread.${currentUser.uid}`]: 0
-        });
-    } catch(_) {}
+    // Firestore rules do not allow client-side unread writes for dmThreads.
+    // Unread state should be handled by a server-side process or different schema.
 
     // Wire send button + enter key
     const sendBtn = document.getElementById('dm-send-btn');
@@ -1473,7 +1469,7 @@ async function openConversation(cid, otherId, otherName, otherPhoto) {
     msgList.innerHTML = '<div class="feed-loading">Loading…</div>';
 
     const q = query(
-        collection(db, 'conversations', cid, 'messages'),
+        collection(db, 'dmThreads', cid, 'messages'),
         orderBy('createdAt', 'asc'),
         limit(200)
     );
@@ -1488,7 +1484,7 @@ async function openConversation(cid, otherId, otherName, otherPhoto) {
 // ── Start/open a DM with a user (from popup) ──────────────────────────────────
 async function openDMWith(uid, username) {
     const cid = convId(currentUser.uid, uid);
-    const convRef = doc(db, 'conversations', cid);
+    const convRef = doc(db, 'dmThreads', cid);
 
     // Fetch their photo
     let otherPhoto = '';
@@ -1502,18 +1498,18 @@ async function openDMWith(uid, username) {
         const convSnap = await getDoc(convRef);
         if (!convSnap.exists()) {
             await setDoc(convRef, {
-                members: [currentUser.uid, uid],
-                memberNames: {
+                participants: [currentUser.uid, uid],
+                participantNames: {
                     [currentUser.uid]: currentProfile.username,
                     [uid]: username
                 },
-                memberPhotos: {
+                participantPhotos: {
                     [currentUser.uid]: currentProfile.photoURL || '',
                     [uid]: otherPhoto
                 },
                 lastMessage: '',
-                lastAt: serverTimestamp(),
-                unread: { [currentUser.uid]: 0, [uid]: 0 }
+                lastMessageAt: serverTimestamp(),
+                lastSenderId: currentUser.uid
             });
         }
     } catch(e) { toast('Could not open chat: ' + e.message, 'error'); return; }
@@ -1532,16 +1528,16 @@ async function sendDMMessage(cid, otherId, otherName, otherPhoto) {
     input.value = '';
 
     try {
-        await addDoc(collection(db, 'conversations', cid, 'messages'), {
+        await addDoc(collection(db, 'dmThreads', cid, 'messages'), {
             senderUid: currentUser.uid,
             senderName: currentProfile.username,
             text,
             createdAt: serverTimestamp()
         });
-        await updateDoc(doc(db, 'conversations', cid), {
+        await updateDoc(doc(db, 'dmThreads', cid), {
             lastMessage: text,
-            lastAt: serverTimestamp(),
-            [`unread.${otherId}`]: increment(1)
+            lastMessageAt: serverTimestamp(),
+            lastSenderId: currentUser.uid
         });
     } catch(e) { toast('Could not send message: ' + e.message, 'error'); }
 }
